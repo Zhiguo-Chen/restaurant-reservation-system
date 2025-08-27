@@ -18,6 +18,7 @@ build/
 
 # IDE
 .vscode/
+.kiro/
 .idea/
 *.swp
 *.swo
@@ -27,7 +28,6 @@ build/
 Thumbs.db
 
 # Logs
-logs/
 *.log
 
 # Runtime data

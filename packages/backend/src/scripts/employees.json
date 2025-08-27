@@ -1,0 +1,56 @@
+[
+  {
+    "id": "admin",
+    "username": "admin",
+    "email": "admin@restaurant.com",
+    "role": "ADMIN",
+    "firstName": "Admin",
+    "lastName": "User",
+    "phone": "+1234567890"
+  },
+  {
+    "id": "manager",
+    "username": "manager",
+    "email": "manager@restaurant.com",
+    "role": "ADMIN",
+    "firstName": "Manager",
+    "lastName": "Smith",
+    "phone": "+1234567891"
+  },
+  {
+    "id": "employee1",
+    "username": "employee1",
+    "email": "employee1@restaurant.com",
+    "role": "EMPLOYEE",
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "+1234567892"
+  },
+  {
+    "id": "employee2",
+    "username": "employee2",
+    "email": "employee2@restaurant.com",
+    "role": "EMPLOYEE",
+    "firstName": "Jane",
+    "lastName": "Wilson",
+    "phone": "+1234567893"
+  },
+  {
+    "id": "waiter1",
+    "username": "waiter1",
+    "email": "waiter1@restaurant.com",
+    "role": "EMPLOYEE",
+    "firstName": "Mike",
+    "lastName": "Johnson",
+    "phone": "+1234567894"
+  },
+  {
+    "id": "chef1",
+    "username": "chef1",
+    "email": "chef1@restaurant.com",
+    "role": "EMPLOYEE",
+    "firstName": "Sarah",
+    "lastName": "Brown",
+    "phone": "+1234567895"
+  }
+]
