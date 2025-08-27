@@ -6,7 +6,7 @@ import {
   AuthResponse,
   UserInfo,
   ValidationResult,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 import { logger } from "../utils/logger";
 
 export class AuthControllerImpl implements AuthController {
@@ -37,8 +37,8 @@ export class AuthControllerImpl implements AuthController {
       );
 
       logger.info("User logged in successfully", {
-        userId: authResponse.user.id,
-        username: authResponse.user.username,
+        userId: authResponse.user?.id,
+        username: authResponse.user?.username,
         requestId: req.headers["x-request-id"],
       });
 

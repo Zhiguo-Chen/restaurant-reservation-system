@@ -29,7 +29,7 @@ export const ensureDatabaseConnection = async (
     }
 
     // Add database instance to request for use in controllers
-    (req as any).db = dbConnection.getDatabase();
+    (req as any).db = dbConnection.getBucket();
     next();
   } catch (error) {
     logger.error("Database middleware error:", error);

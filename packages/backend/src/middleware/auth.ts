@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../interfaces/services";
-import { UserRole } from "@restaurant-reservation/shared";
+import { UserRole } from "../types/shared";
 
 // Extend Express Request interface to include user
 declare global {

@@ -1,5 +1,5 @@
-import { Db, Filter, FindOptions } from "mongodb";
-import { User, UserRole } from "@restaurant-reservation/shared";
+import { Bucket } from "couchbase";
+import { User, UserRole } from "../types/shared";
 import { UserRepository as IUserRepository } from "../interfaces/repositories";
 import { BaseRepository } from "./BaseRepository";
 import { createLogger } from "../utils/logger";
@@ -7,35 +7,38 @@ import { createLogger } from "../utils/logger";
 const logger = createLogger("UserRepository");
 
 /**
- * MongoDB implementation of UserRepository
+ * Couchbase implementation of UserRepository
  */
 export class UserRepository
   extends BaseRepository<User>
   implements IUserRepository
 {
-  constructor(db: Db) {
-    super(db, "users");
+  constructor(bucket: Bucket) {
+    super(bucket, "user");
   }
 
   /**
-   * Convert MongoDB document to User entity
+   * Convert Couchbase document to User entity
    */
   protected toDomainEntity(doc: any): User {
     return {
-      id: doc._id,
+      id: doc.id,
       username: doc.username,
+      email: doc.email || "",
       passwordHash: doc.passwordHash,
       role: doc.role as UserRole,
       createdAt: new Date(doc.createdAt),
+      updatedAt: new Date(doc.updatedAt || doc.createdAt),
     };
   }
 
   /**
-   * Convert User entity to MongoDB document
+   * Convert User entity to Couchbase document
    */
-  protected toMongoDocument(entity: User): any {
+  protected toCouchbaseDocument(entity: User): any {
     return {
-      _id: entity.id,
+      type: this.collectionName,
+      id: entity.id,
       username: entity.username,
       passwordHash: entity.passwordHash,
       role: entity.role,
@@ -50,14 +53,19 @@ export class UserRepository
     try {
       logger.debug("Finding user by username", { username });
 
-      const doc = await this.collection.findOne({ username });
+      const bucketName = this.bucket.name;
+      const query = `SELECT META().id, * FROM \`${bucketName}\` WHERE type = $type AND username = $username LIMIT 1`;
+      const result = await this.findWithQuery(query, {
+        type: this.collectionName,
+        username,
+      });
 
-      if (!doc) {
+      if (result.length === 0) {
         logger.debug("User not found by username", { username });
         return null;
       }
 
-      const user = this.toDomainEntity(doc);
+      const user = result[0];
       logger.debug("Found user by username", { username, userId: user.id });
       return user;
     } catch (error) {
@@ -73,12 +81,10 @@ export class UserRepository
     try {
       logger.debug("Finding users by role", { role });
 
-      const filter: Filter<any> = { role };
-      const options: FindOptions = {
-        sort: { createdAt: -1 },
-      };
+      const bucketName = this.bucket.name;
+      const query = `SELECT META().id, * FROM \`${bucketName}\` WHERE type = $type AND role = $role ORDER BY createdAt DESC`;
 
-      return this.findWithFilter(filter, options);
+      return this.findWithQuery(query, { type: this.collectionName, role });
     } catch (error) {
       logger.error("Error finding users by role:", error);
       throw error;
@@ -92,13 +98,16 @@ export class UserRepository
     try {
       logger.debug("Checking if username exists", { username, excludeId });
 
-      const filter: Filter<any> = { username };
+      const bucketName = this.bucket.name;
+      let query = `SELECT COUNT(*) as count FROM \`${bucketName}\` WHERE type = $type AND username = $username`;
+      const parameters: any = { type: this.collectionName, username };
 
       if (excludeId) {
-        filter._id = { $ne: excludeId };
+        query += ` AND id != $excludeId`;
+        parameters.excludeId = excludeId;
       }
 
-      const count = await this.collection.countDocuments(filter, { limit: 1 });
+      const count = await this.countWithQuery(query, parameters);
       const exists = count > 0;
 
       logger.debug("Username existence check result", { username, exists });
@@ -158,42 +167,40 @@ export class UserRepository
     try {
       logger.debug("Getting user statistics");
 
-      const [total, byRoleResult, recentUsers] = await Promise.all([
-        this.countWithFilter({}),
-        this.collection
-          .aggregate([
-            {
-              $group: {
-                _id: "$role",
-                count: { $sum: 1 },
-              },
-            },
-          ])
-          .toArray(),
-        this.findWithFilter(
-          {},
-          {
-            sort: { createdAt: -1 },
-            limit: 10,
-          }
+      const bucketName = this.bucket.name;
+
+      const [totalResult, byRoleResult, recentUsers] = await Promise.all([
+        this.countWithQuery(
+          `SELECT COUNT(*) as count FROM \`${bucketName}\` WHERE type = $type`,
+          { type: this.collectionName }
+        ),
+        this.bucket.cluster.query(
+          `SELECT role, COUNT(*) as count FROM \`${bucketName}\` WHERE type = $type GROUP BY role`,
+          { parameters: { type: this.collectionName } }
+        ),
+        this.findWithQuery(
+          `SELECT META().id, * FROM \`${bucketName}\` WHERE type = $type ORDER BY createdAt DESC LIMIT 10`,
+          { type: this.collectionName }
         ),
       ]);
 
       // Initialize role counts
       const byRole: Record<UserRole, number> = {
+        [UserRole.GUEST]: 0,
         [UserRole.EMPLOYEE]: 0,
+        [UserRole.MANAGER]: 0,
         [UserRole.ADMIN]: 0,
       };
 
       // Populate actual counts
-      byRoleResult.forEach((item) => {
-        if (item._id in byRole) {
-          byRole[item._id as UserRole] = item.count;
+      byRoleResult.rows.forEach((item: any) => {
+        if (item.role in byRole) {
+          byRole[item.role as UserRole] = item.count;
         }
       });
 
       return {
-        total,
+        total: totalResult,
         byRole,
         recentUsers,
       };

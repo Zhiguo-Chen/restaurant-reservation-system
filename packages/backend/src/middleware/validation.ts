@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { ValidationResult } from "@restaurant-reservation/shared";
+import { ValidationError, ValidationResult } from "../types/shared";
 
 /**
  * Request validation middleware
@@ -15,7 +15,7 @@ export class ValidationMiddleware {
   ): void {
     const validation = ValidationMiddleware.validateLogin(req.body);
 
-    if (!validation.isValid) {
+    if (validation.errors.length > 0) {
       res.status(400).json({
         error: {
           code: "VALIDATION_ERROR",

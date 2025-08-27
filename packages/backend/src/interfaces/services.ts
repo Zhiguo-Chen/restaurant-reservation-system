@@ -6,10 +6,11 @@ import {
   UpdateReservationData,
   ValidationResult,
   UserInfo,
+  User,
   LoginRequest,
   AuthResponse,
   ErrorResponse,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 
 export interface ReservationService {
   createReservation(data: CreateReservationData): Promise<Reservation>;
@@ -73,6 +74,7 @@ export interface AuthService {
   login(credentials: LoginRequest): Promise<AuthResponse>;
   logout(token: string): Promise<void>;
   validateToken(token: string): Promise<UserInfo>;
+  getUserById(id: string): Promise<User | null>;
   generateToken(user: UserInfo): string;
   hashPassword(password: string): Promise<string>;
   comparePassword(password: string, hash: string): Promise<boolean>;

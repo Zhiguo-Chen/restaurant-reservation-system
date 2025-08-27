@@ -1,22 +1,51 @@
 version: "3.8"
 
 services:
-  # MongoDB Database
-  mongodb:
-    image: mongo:7.0
-    container_name: restaurant-mongodb
+  # Couchbase Database
+  couchbase:
+    image: couchbase:7.2.4
+    container_name: restaurant-couchbase
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: restaurant-reservations
+      COUCHBASE_ADMINISTRATOR_USERNAME: admin
+      COUCHBASE_ADMINISTRATOR_PASSWORD: password123
+      COUCHBASE_BUCKET: restaurant-reservations
+      COUCHBASE_BUCKET_RAMSIZE: 512
     ports:
-      - "27018:27017"
+      - "8091-8096:8091-8096"
+      - "11210:11210"
     volumes:
-      - mongodb_data:/data/db
-      - ./docker/mongodb/init:/docker-entrypoint-initdb.d
+      - couchbase_data:/opt/couchbase/var
+      - ./docker/couchbase/init-cluster.sh:/opt/couchbase/init/init-cluster.sh
     networks:
       - restaurant-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-u",
+          "admin:password123",
+          "http://localhost:8091/pools/default",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Couchbase Initialization
+  couchbase-init:
+    image: couchbase:7.2.4
+    container_name: restaurant-couchbase-init
+    depends_on:
+      couchbase:
+        condition: service_healthy
+    volumes:
+      - ./docker/couchbase/init-cluster.sh:/init-cluster.sh
+    networks:
+      - restaurant-network
+    command: ["/bin/bash", "/init-cluster.sh"]
+    restart: "no"
 
   # Backend API Service
   backend:
@@ -28,8 +57,10 @@ services:
     environment:
       NODE_ENV: development
       PORT: 4000
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/restaurant-reservations?authSource=admin
-      MONGODB_DB_NAME: restaurant-reservations
+      COUCHBASE_CONNECTION_STRING: couchbase://couchbase
+      COUCHBASE_USERNAME: admin
+      COUCHBASE_PASSWORD: password123
+      COUCHBASE_BUCKET: restaurant-reservations
       JWT_SECRET: your-super-secret-jwt-key-for-development-only
       JWT_EXPIRES_IN: 24h
       CORS_ORIGIN: http://localhost:3000
@@ -37,7 +68,7 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - mongodb
+      - couchbase
     volumes:
       - ./packages/backend:/app
       - /app/node_modules
@@ -83,26 +114,11 @@ services:
       - restaurant-network
     command: redis-server --appendonly yes
 
-  # MongoDB Express (Database Admin UI)
-  mongo-express:
-    image: mongo-express:1.0.0
-    container_name: restaurant-mongo-express
-    restart: unless-stopped
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password123
-      ME_CONFIG_MONGODB_URL: mongodb://admin:password123@mongodb:27017/
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: admin123
-    ports:
-      - "8081:8081"
-    depends_on:
-      - mongodb
-    networks:
-      - restaurant-network
+  # Couchbase Web Console is available at http://localhost:8091
+  # Login with admin/password123
 
 volumes:
-  mongodb_data:
+  couchbase_data:
     driver: local
   redis_data:
     driver: local

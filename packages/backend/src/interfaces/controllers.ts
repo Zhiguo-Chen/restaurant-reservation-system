@@ -8,7 +8,7 @@ import {
   LoginRequest,
   AuthResponse,
   UserInfo,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 
 export interface AuthController {
   login(req: Request, res: Response): Promise<void>;

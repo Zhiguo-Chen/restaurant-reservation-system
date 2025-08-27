@@ -1,10 +1,6 @@
 import { AuthService } from "../interfaces/services";
 import { UserRepository } from "../interfaces/repositories";
-import {
-  LoginRequest,
-  AuthResponse,
-  UserInfo,
-} from "@restaurant-reservation/shared";
+import { LoginRequest, AuthResponse, UserInfo, User } from "../types/shared";
 import { JwtUtils } from "../utils/jwt";
 import { PasswordUtils } from "../utils/password";
 
@@ -23,7 +19,7 @@ export class AuthServiceImpl implements AuthService {
     // Verify password
     const isValidPassword = await PasswordUtils.comparePassword(
       password,
-      user.passwordHash
+      user.passwordHash || ""
     );
     if (!isValidPassword) {
       throw new Error("Invalid credentials");
@@ -33,19 +29,21 @@ export class AuthServiceImpl implements AuthService {
     const userInfo: UserInfo = {
       id: user.id,
       username: user.username,
+      email: user.email,
       role: user.role,
     };
 
     // Generate JWT token
     const token = JwtUtils.generateToken(userInfo);
 
-    // Calculate expiration time
-    const expiresIn = JwtUtils.getTokenExpirationTime();
-
     return {
+      success: true,
       token,
-      user: userInfo,
-      expiresIn,
+      user: {
+        ...userInfo,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
     };
   }
 
@@ -76,6 +74,10 @@ export class AuthServiceImpl implements AuthService {
     } catch (error) {
       throw new Error("Invalid or expired token");
     }
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    return this.userRepository.findById(id);
   }
 
   generateToken(user: UserInfo): string {

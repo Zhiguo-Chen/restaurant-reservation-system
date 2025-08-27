@@ -1,8 +1,4 @@
-import {
-  Reservation,
-  ReservationStatus,
-  User,
-} from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus, User } from "../types/shared";
 
 export interface BaseRepository<T> {
   create(entity: T): Promise<T>;

@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 import { AuthService } from "../interfaces/services";
-import { UserInfo } from "@restaurant-reservation/shared";
+import { User } from "../types/shared";
 import { logger } from "../utils/logger";
 
 export interface GraphQLContext {
-  req: Request;
-  res: Response;
-  user?: UserInfo;
+  req: any;
+  res: any;
+  user?: User;
   authService: AuthService;
 }
 
@@ -14,7 +14,7 @@ export interface GraphQLContext {
  * Create GraphQL context from Express request/response
  */
 export async function createContext(
-  { req, res }: { req: Request; res: Response },
+  { req, res }: { req: any; res: any },
   authService: AuthService
 ): Promise<GraphQLContext> {
   const context: GraphQLContext = {
@@ -30,13 +30,17 @@ export async function createContext(
     const token = authHeader.split(" ")[1];
 
     try {
-      const user = await authService.validateToken(token);
-      context.user = user;
+      const userInfo = await authService.validateToken(token);
+      // Convert UserInfo to User for context
+      const user = await authService.getUserById(userInfo.id);
+      if (user) {
+        context.user = user;
+      }
 
       logger.debug("GraphQL request authenticated", {
-        userId: user.id,
-        username: user.username,
-        role: user.role,
+        userId: user?.id,
+        username: user?.username,
+        role: user?.role,
         operation: req.body?.operationName,
         requestId: req.headers["x-request-id"],
       });
@@ -57,7 +61,7 @@ export async function createContext(
 /**
  * Require authentication for GraphQL resolvers
  */
-export function requireAuth(context: GraphQLContext): UserInfo {
+export function requireAuth(context: GraphQLContext): User {
   if (!context.user) {
     throw new Error("Authentication required");
   }
@@ -70,7 +74,7 @@ export function requireAuth(context: GraphQLContext): UserInfo {
 export function requireRole(
   context: GraphQLContext,
   allowedRoles: string[]
-): UserInfo {
+): User {
   const user = requireAuth(context);
 
   if (!allowedRoles.includes(user.role)) {
@@ -90,6 +94,6 @@ export function isAuthenticated(context: GraphQLContext): boolean {
 /**
  * Get current user or null if not authenticated
  */
-export function getCurrentUser(context: GraphQLContext): UserInfo | null {
+export function getCurrentUser(context: GraphQLContext): User | null {
   return context.user || null;
 }
