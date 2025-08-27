@@ -4,7 +4,7 @@ import {
   CreateReservationData,
   UpdateReservationData,
   ReservationFilter,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 import { ReservationService as IReservationService } from "../interfaces/services";
 import { ReservationRepository } from "../interfaces/repositories";
 import logger from "../utils/logger";
@@ -29,7 +29,7 @@ export class ReservationService implements IReservationService {
     // Check for time slot conflicts first
     const hasConflict = await this.checkTimeSlotConflict(
       data.arrivalTime,
-      data.tableSize
+      data.tableSize || 2
     );
 
     if (hasConflict) {
@@ -48,6 +48,9 @@ export class ReservationService implements IReservationService {
     const reservation: Reservation = {
       id,
       ...data,
+      status: ReservationStatus.REQUESTED,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
     try {
@@ -99,7 +102,7 @@ export class ReservationService implements IReservationService {
     if (data.arrivalTime || data.tableSize) {
       const newArrivalTime =
         data.arrivalTime || existingReservation.arrivalTime;
-      const newTableSize = data.tableSize || existingReservation.tableSize;
+      const newTableSize = data.tableSize || existingReservation.tableSize || 2;
 
       const hasConflict = await this.checkTimeSlotConflict(
         newArrivalTime,
@@ -399,7 +402,7 @@ export class ReservationService implements IReservationService {
       // In a real system, this would be more sophisticated with table management
       const maxConcurrentReservations = 10; // Example capacity
       const totalTableSize = activeReservations.reduce(
-        (sum, reservation) => sum + reservation.tableSize,
+        (sum, reservation) => sum + (reservation.tableSize || 2),
         0
       );
 
@@ -437,15 +440,26 @@ export class ReservationService implements IReservationService {
   ): boolean {
     const validTransitions: Record<ReservationStatus, ReservationStatus[]> = {
       [ReservationStatus.REQUESTED]: [
-        ReservationStatus.APPROVED,
+        ReservationStatus.CONFIRMED,
         ReservationStatus.CANCELLED,
       ],
+      [ReservationStatus.CONFIRMED]: [
+        ReservationStatus.SEATED,
+        ReservationStatus.CANCELLED,
+        ReservationStatus.NO_SHOW,
+      ],
       [ReservationStatus.APPROVED]: [
+        ReservationStatus.SEATED,
         ReservationStatus.COMPLETED,
         ReservationStatus.CANCELLED,
       ],
-      [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+      [ReservationStatus.SEATED]: [
+        ReservationStatus.COMPLETED,
+        ReservationStatus.CANCELLED,
+      ],
       [ReservationStatus.COMPLETED]: [], // Cannot transition from completed
+      [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+      [ReservationStatus.NO_SHOW]: [], // Cannot transition from no_show
     };
 
     return validTransitions[currentStatus].includes(newStatus);

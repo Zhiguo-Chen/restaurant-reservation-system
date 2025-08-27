@@ -13,7 +13,7 @@ import {
   UserRole,
   PaginationInput,
   PaginatedResponse,
-} from "@restaurant-reservation/shared";
+} from "../../types/shared";
 import { ReservationService } from "../../interfaces/services";
 import { EnhancedReservationService } from "../../interfaces/reservationService";
 import { GraphQLErrors } from "../errors";
@@ -44,8 +44,9 @@ export const reservationResolvers = {
       const { filter = {}, pagination = {} } = args;
 
       // Set default pagination values
-      const limit = pagination.limit || 20;
-      const offset = pagination.offset || 0;
+      const limit = (pagination as any)?.limit || 20;
+      const page = (pagination as any)?.page || 1;
+      const offset = (page - 1) * limit;
 
       // If user is not authenticated, they can only search by email
       if (!user) {
@@ -72,10 +73,10 @@ export const reservationResolvers = {
         return {
           data: paginatedData,
           pagination: {
-            total,
+            page,
             limit,
-            offset,
-            hasMore: offset + limit < total,
+            total,
+            totalPages: Math.ceil(total / limit),
           },
         };
       }
@@ -91,17 +92,17 @@ export const reservationResolvers = {
       // Use the repository's pagination method
       const result = await reservationService.getReservationsWithPagination(
         filter,
-        Math.floor(offset / limit) + 1, // Convert offset to page number
+        page,
         limit
       );
 
       return {
         data: result.reservations,
         pagination: {
-          total: result.total,
+          page: result.page,
           limit,
-          offset,
-          hasMore: offset + limit < result.total,
+          total: result.total,
+          totalPages: result.totalPages,
         },
       };
     },
@@ -451,15 +452,26 @@ export const reservationResolvers = {
       const currentStatus = existingReservation.status;
       const validTransitions: Record<ReservationStatus, ReservationStatus[]> = {
         [ReservationStatus.REQUESTED]: [
-          ReservationStatus.APPROVED,
+          ReservationStatus.CONFIRMED,
           ReservationStatus.CANCELLED,
         ],
+        [ReservationStatus.CONFIRMED]: [
+          ReservationStatus.SEATED,
+          ReservationStatus.CANCELLED,
+          ReservationStatus.NO_SHOW,
+        ],
         [ReservationStatus.APPROVED]: [
+          ReservationStatus.SEATED,
           ReservationStatus.COMPLETED,
           ReservationStatus.CANCELLED,
         ],
-        [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+        [ReservationStatus.SEATED]: [
+          ReservationStatus.COMPLETED,
+          ReservationStatus.CANCELLED,
+        ],
         [ReservationStatus.COMPLETED]: [], // Cannot transition from completed
+        [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+        [ReservationStatus.NO_SHOW]: [], // Cannot transition from no_show
       };
 
       if (!validTransitions[currentStatus].includes(status)) {

@@ -1,5 +1,9 @@
 import jwt from "jsonwebtoken";
-import { UserInfo } from "@restaurant-reservation/shared";
+import {
+  User,
+  UserInfo,
+  JwtPayload as CustomJwtPayload,
+} from "../types/shared";
 import { config } from "../config/environment";
 
 export interface JwtPayload extends UserInfo {
@@ -17,6 +21,7 @@ export class JwtUtils {
     const payload: Omit<JwtPayload, "iat" | "exp" | "iss" | "aud"> = {
       id: user.id,
       username: user.username,
+      email: user.email,
       role: user.role,
     };
 
@@ -30,7 +35,7 @@ export class JwtUtils {
   /**
    * Verify and decode a JWT token
    */
-  static verifyToken(token: string): JwtPayload {
+  static verifyToken(token: string): CustomJwtPayload {
     try {
       const decoded = jwt.verify(token, config.JWT_SECRET, {
         issuer: "restaurant-reservation-system",
@@ -97,10 +102,11 @@ export class JwtUtils {
   /**
    * Extract user info from token payload
    */
-  static extractUserInfo(payload: JwtPayload): UserInfo {
+  static extractUserInfo(payload: CustomJwtPayload): UserInfo {
     return {
       id: payload.id,
       username: payload.username,
+      email: (payload as any).email || "",
       role: payload.role,
     };
   }

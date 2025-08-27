@@ -1,0 +1,19 @@
+# GitHub 设置命令
+# 请先在 GitHub 上创建仓库，然后运行以下命令：
+
+# 1. 添加远程仓库 (替换为你的实际仓库URL)
+git remote add origin https://github.com/YOUR_USERNAME/restaurant-reservation-system.git
+
+# 2. 重命名主分支为 main
+git branch -M main
+
+# 3. 推送代码到 GitHub
+git push -u origin main
+
+# 4. 验证推送成功
+git remote -v
+
+# 注意：
+# - 替换 YOUR_USERNAME 为你的 GitHub 用户名
+# - 如果仓库名不同，也要相应替换
+# - 如果你使用 SSH，URL 格式为：git@github.com:YOUR_USERNAME/restaurant-reservation-system.git

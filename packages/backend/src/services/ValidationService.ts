@@ -4,7 +4,7 @@ import {
   CreateReservationData,
   UpdateReservationData,
   ReservationStatus,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 import { ValidationService as IValidationService } from "../interfaces/services";
 import logger from "../utils/logger";
 
@@ -58,10 +58,12 @@ export class ValidationService implements IValidationService {
       errors.push(...arrivalTimeValidation.errors);
     }
 
-    // Validate table size
-    const tableSizeValidation = this.validateTableSize(data.tableSize);
-    if (!tableSizeValidation.isValid) {
-      errors.push(...tableSizeValidation.errors);
+    // Validate table size (optional)
+    if (data.tableSize !== undefined) {
+      const tableSizeValidation = this.validateTableSize(data.tableSize);
+      if (!tableSizeValidation.isValid) {
+        errors.push(...tableSizeValidation.errors);
+      }
     }
 
     // Validate notes (optional)
@@ -348,15 +350,26 @@ export class ValidationService implements IValidationService {
   ): boolean {
     const validTransitions: Record<ReservationStatus, ReservationStatus[]> = {
       [ReservationStatus.REQUESTED]: [
-        ReservationStatus.APPROVED,
+        ReservationStatus.CONFIRMED,
         ReservationStatus.CANCELLED,
       ],
+      [ReservationStatus.CONFIRMED]: [
+        ReservationStatus.SEATED,
+        ReservationStatus.CANCELLED,
+        ReservationStatus.NO_SHOW,
+      ],
       [ReservationStatus.APPROVED]: [
+        ReservationStatus.SEATED,
         ReservationStatus.COMPLETED,
         ReservationStatus.CANCELLED,
       ],
-      [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+      [ReservationStatus.SEATED]: [
+        ReservationStatus.COMPLETED,
+        ReservationStatus.CANCELLED,
+      ],
       [ReservationStatus.COMPLETED]: [], // Cannot transition from completed
+      [ReservationStatus.CANCELLED]: [], // Cannot transition from cancelled
+      [ReservationStatus.NO_SHOW]: [], // Cannot transition from no_show
     };
 
     const isValid = validTransitions[currentStatus].includes(newStatus);

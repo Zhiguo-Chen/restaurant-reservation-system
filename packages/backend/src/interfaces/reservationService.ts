@@ -4,7 +4,7 @@ import {
   ReservationFilter,
   PaginationInput,
   PaginatedResponse,
-} from "@restaurant-reservation/shared";
+} from "../types/shared";
 
 export interface EnhancedReservationService {
   // Basic CRUD operations

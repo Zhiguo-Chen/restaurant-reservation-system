@@ -1,5 +1,6 @@
 import { GraphQLContext, requireAuth } from "../context";
-import { UserInfo } from "@restaurant-reservation/shared";
+import { UserInfo } from "../../types/shared";
+import { User } from "../../types/shared";
 
 export const userResolvers = {
   Query: {
@@ -11,7 +12,15 @@ export const userResolvers = {
       _args: any,
       context: GraphQLContext
     ): Promise<UserInfo> => {
-      return requireAuth(context);
+      const user = requireAuth(context);
+      return {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      };
     },
   },
 };

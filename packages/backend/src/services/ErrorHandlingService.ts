@@ -1,4 +1,4 @@
-import { ErrorResponse } from "@restaurant-reservation/shared";
+import { ApiError, ErrorResponse } from "../types/shared";
 import {
   ErrorHandlingService as IErrorHandlingService,
   StructuredError,
@@ -22,12 +22,11 @@ export class ErrorHandlingService implements IErrorHandlingService {
     requestId?: string
   ): ErrorResponse {
     const errorResponse: ErrorResponse = {
+      success: false,
       error: {
         code: error.code,
         message: error.message,
         details: error.details,
-        timestamp: error.timestamp,
-        requestId: requestId || error.requestId || this.generateRequestId(),
       },
     };
 

@@ -1,15 +1,17 @@
-import { MongoClient, Db, MongoClientOptions } from "mongodb";
+import { Cluster, Bucket, Collection, ConnectOptions } from "couchbase";
 
 export interface DatabaseConfig {
-  uri: string;
-  dbName: string;
-  options?: MongoClientOptions;
+  connectionString: string;
+  username: string;
+  password: string;
+  bucketName: string;
+  options?: ConnectOptions;
 }
 
 export class DatabaseConnection {
   private static instance: DatabaseConnection;
-  private client: MongoClient | null = null;
-  private db: Db | null = null;
+  private cluster: Cluster | null = null;
+  private bucket: Bucket | null = null;
   private config: DatabaseConfig;
 
   private constructor(config: DatabaseConfig) {
@@ -32,80 +34,91 @@ export class DatabaseConnection {
   }
 
   /**
-   * Connect to MongoDB database
+   * Connect to Couchbase database
    */
   async connect(): Promise<void> {
     try {
-      if (this.client && this.db) {
+      if (this.cluster && this.bucket) {
         // Already connected
         return;
       }
 
-      const options: MongoClientOptions = {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
-        family: 4, // Use IPv4, skip trying IPv6
+      const options: ConnectOptions = {
+        username: this.config.username,
+        password: this.config.password,
         ...this.config.options,
       };
 
-      this.client = new MongoClient(this.config.uri, options);
-      await this.client.connect();
-
-      this.db = this.client.db(this.config.dbName);
+      this.cluster = await Cluster.connect(
+        this.config.connectionString,
+        options
+      );
+      this.bucket = this.cluster.bucket(this.config.bucketName);
 
       // Test the connection
-      await this.db.admin().ping();
+      await this.cluster.ping();
 
-      console.log(`Connected to MongoDB database: ${this.config.dbName}`);
+      console.log(`Connected to Couchbase bucket: ${this.config.bucketName}`);
     } catch (error) {
-      console.error("Failed to connect to MongoDB:", error);
+      console.error("Failed to connect to Couchbase:", error);
       throw error;
     }
   }
 
   /**
-   * Disconnect from MongoDB database
+   * Disconnect from Couchbase database
    */
   async disconnect(): Promise<void> {
     try {
-      if (this.client) {
-        await this.client.close();
-        this.client = null;
-        this.db = null;
-        console.log("Disconnected from MongoDB");
+      if (this.cluster) {
+        await this.cluster.close();
+        this.cluster = null;
+        this.bucket = null;
+        console.log("Disconnected from Couchbase");
       }
     } catch (error) {
-      console.error("Error disconnecting from MongoDB:", error);
+      console.error("Error disconnecting from Couchbase:", error);
       throw error;
     }
   }
 
   /**
-   * Get database instance
+   * Get bucket instance
    */
-  getDatabase(): Db {
-    if (!this.db) {
+  getBucket(): Bucket {
+    if (!this.bucket) {
       throw new Error("Database not connected. Call connect() first.");
     }
-    return this.db;
+    return this.bucket;
   }
 
   /**
-   * Get MongoDB client instance
+   * Get collection instance
    */
-  getClient(): MongoClient {
-    if (!this.client) {
-      throw new Error("Database client not initialized. Call connect() first.");
+  getCollection(collectionName: string = "_default"): Collection {
+    if (!this.bucket) {
+      throw new Error("Database not connected. Call connect() first.");
     }
-    return this.client;
+    return this.bucket.defaultCollection();
+  }
+
+  /**
+   * Get Couchbase cluster instance
+   */
+  getCluster(): Cluster {
+    if (!this.cluster) {
+      throw new Error(
+        "Database cluster not initialized. Call connect() first."
+      );
+    }
+    return this.cluster;
   }
 
   /**
    * Check if database is connected
    */
   isConnected(): boolean {
-    return this.client !== null && this.db !== null;
+    return this.cluster !== null && this.bucket !== null;
   }
 
   /**
@@ -117,7 +130,7 @@ export class DatabaseConnection {
     timestamp: Date;
   }> {
     try {
-      if (!this.db) {
+      if (!this.cluster) {
         return {
           status: "unhealthy",
           message: "Database not connected",
@@ -125,8 +138,8 @@ export class DatabaseConnection {
         };
       }
 
-      // Ping the database
-      await this.db.admin().ping();
+      // Ping the cluster
+      await this.cluster.ping();
 
       return {
         status: "healthy",
@@ -145,29 +158,76 @@ export class DatabaseConnection {
   }
 
   /**
-   * Create database indexes for optimal performance
+   * Create primary indexes for optimal performance
    */
   async createIndexes(): Promise<void> {
-    if (!this.db) {
+    if (!this.cluster) {
       throw new Error("Database not connected");
     }
 
     try {
-      const reservationsCollection = this.db.collection("reservations");
+      const queryManager = this.cluster.queryIndexes();
 
-      // Create indexes for common queries
-      await reservationsCollection.createIndex({ arrivalTime: 1 });
-      await reservationsCollection.createIndex({ status: 1 });
-      await reservationsCollection.createIndex({ guestEmail: 1 });
-      await reservationsCollection.createIndex({ arrivalTime: 1, status: 1 });
-      await reservationsCollection.createIndex({ createdAt: 1 });
+      // Create primary index if it doesn't exist
+      try {
+        await queryManager.createPrimaryIndex(this.config.bucketName);
+        console.log("Primary index created successfully");
+      } catch (error: any) {
+        if (error.message?.includes("already exists")) {
+          console.log("Primary index already exists");
+        } else {
+          throw error;
+        }
+      }
 
-      const usersCollection = this.db.collection("users");
+      // Create secondary indexes for common queries
+      const indexes = [
+        {
+          name: "idx_reservation_arrival_time",
+          fields: ["arrivalTime"],
+          condition: "type = 'reservation'",
+        },
+        {
+          name: "idx_reservation_status",
+          fields: ["status"],
+          condition: "type = 'reservation'",
+        },
+        {
+          name: "idx_reservation_guest_email",
+          fields: ["guestEmail"],
+          condition: "type = 'reservation'",
+        },
+        {
+          name: "idx_user_username",
+          fields: ["username"],
+          condition: "type = 'user'",
+        },
+      ];
 
-      // Create unique index for username
-      await usersCollection.createIndex({ username: 1 }, { unique: true });
+      for (const index of indexes) {
+        try {
+          await queryManager.createIndex(
+            this.config.bucketName,
+            index.name,
+            index.fields,
+            {
+              condition: index.condition,
+            } as any
+          );
+          console.log(`Index ${index.name} created successfully`);
+        } catch (error: any) {
+          if (error.message?.includes("already exists")) {
+            console.log(`Index ${index.name} already exists`);
+          } else {
+            console.warn(
+              `Failed to create index ${index.name}:`,
+              error.message
+            );
+          }
+        }
+      }
 
-      console.log("Database indexes created successfully");
+      console.log("Database indexes setup completed");
     } catch (error) {
       console.error("Failed to create database indexes:", error);
       throw error;
@@ -178,19 +238,19 @@ export class DatabaseConnection {
    * Get database statistics
    */
   async getStats(): Promise<any> {
-    if (!this.db) {
+    if (!this.cluster) {
       throw new Error("Database not connected");
     }
 
     try {
-      const stats = await this.db.stats();
+      const result = await this.cluster.query(
+        `SELECT COUNT(*) as total_documents FROM \`${this.config.bucketName}\``
+      );
+
       return {
-        database: this.config.dbName,
-        collections: stats.collections,
-        dataSize: stats.dataSize,
-        storageSize: stats.storageSize,
-        indexes: stats.indexes,
-        indexSize: stats.indexSize,
+        bucket: this.config.bucketName,
+        totalDocuments: result.rows[0]?.total_documents || 0,
+        timestamp: new Date(),
       };
     } catch (error) {
       console.error("Failed to get database stats:", error);

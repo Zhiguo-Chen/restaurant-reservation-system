@@ -6,8 +6,10 @@ dotenv.config();
 export interface EnvironmentConfig {
   NODE_ENV: string;
   PORT: number;
-  MONGODB_URI: string;
-  MONGODB_DB_NAME: string;
+  COUCHBASE_CONNECTION_STRING: string;
+  COUCHBASE_USERNAME: string;
+  COUCHBASE_PASSWORD: string;
+  COUCHBASE_BUCKET: string;
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
   CORS_ORIGIN: string;
@@ -18,7 +20,12 @@ export interface EnvironmentConfig {
  * Validate and parse environment variables
  */
 function validateEnvironment(): EnvironmentConfig {
-  const requiredVars = ["MONGODB_URI", "JWT_SECRET"];
+  const requiredVars = [
+    "COUCHBASE_CONNECTION_STRING",
+    "COUCHBASE_USERNAME",
+    "COUCHBASE_PASSWORD",
+    "JWT_SECRET",
+  ];
 
   const missing = requiredVars.filter((varName) => !process.env[varName]);
 
@@ -31,8 +38,10 @@ function validateEnvironment(): EnvironmentConfig {
   return {
     NODE_ENV: process.env.NODE_ENV || "development",
     PORT: parseInt(process.env.PORT || "4000", 10),
-    MONGODB_URI: process.env.MONGODB_URI!,
-    MONGODB_DB_NAME: process.env.MONGODB_DB_NAME || "restaurant-reservations",
+    COUCHBASE_CONNECTION_STRING: process.env.COUCHBASE_CONNECTION_STRING!,
+    COUCHBASE_USERNAME: process.env.COUCHBASE_USERNAME!,
+    COUCHBASE_PASSWORD: process.env.COUCHBASE_PASSWORD!,
+    COUCHBASE_BUCKET: process.env.COUCHBASE_BUCKET || "restaurant-reservations",
     JWT_SECRET: process.env.JWT_SECRET!,
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "24h",
     CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:3000",

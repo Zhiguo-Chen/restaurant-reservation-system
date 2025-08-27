@@ -6,73 +6,45 @@ import {
 } from "apollo-server-express";
 
 /**
- * Custom GraphQL error types
+ * Authentication error for GraphQL operations
  */
-export class ValidationError extends UserInputError {
+export class GraphQLAuthenticationError extends AuthenticationError {
+  constructor(message: string = "Authentication required") {
+    super(message);
+  }
+}
+
+/**
+ * Authorization error for GraphQL operations
+ */
+export class GraphQLForbiddenError extends ForbiddenError {
+  constructor(message: string = "Insufficient permissions") {
+    super(message);
+  }
+}
+
+/**
+ * Input validation error for GraphQL operations
+ */
+export class GraphQLValidationError extends UserInputError {
   constructor(message: string, validationErrors?: any) {
     super(message, { validationErrors });
   }
 }
 
-export class NotFoundError extends ApolloError {
-  constructor(resource: string, id?: string) {
-    const message = id
-      ? `${resource} with ID ${id} not found`
-      : `${resource} not found`;
-
-    super(message, "NOT_FOUND");
-  }
-}
-
-export class ConflictError extends ApolloError {
-  constructor(message: string) {
-    super(message, "CONFLICT");
-  }
-}
-
-export class BusinessRuleError extends ApolloError {
-  constructor(message: string) {
-    super(message, "BUSINESS_RULE_VIOLATION");
-  }
-}
-
 /**
- * GraphQL error factory functions
+ * General business logic error for GraphQL operations
  */
+export class GraphQLBusinessError extends ApolloError {
+  constructor(message: string, code: string = "BUSINESS_ERROR") {
+    super(message, code);
+  }
+}
+
+// Export all errors as GraphQLErrors for backward compatibility
 export const GraphQLErrors = {
-  // Authentication errors
-  unauthenticated: (message: string = "Authentication required") =>
-    new AuthenticationError(message),
-
-  forbidden: (message: string = "Insufficient permissions") =>
-    new ForbiddenError(message),
-
-  // Validation errors
-  invalidInput: (message: string, validationErrors?: any) =>
-    new ValidationError(message, validationErrors),
-
-  // Resource errors
-  notFound: (resource: string, id?: string) => new NotFoundError(resource, id),
-
-  conflict: (message: string) => new ConflictError(message),
-
-  // Business logic errors
-  businessRule: (message: string) => new BusinessRuleError(message),
-
-  // Reservation-specific errors
-  reservationNotFound: (id: string) => new NotFoundError("Reservation", id),
-
-  invalidReservationTime: (message: string = "Invalid reservation time") =>
-    new BusinessRuleError(message),
-
-  reservationConflict: (message: string = "Reservation time conflict") =>
-    new ConflictError(message),
-
-  invalidStatusTransition: (from: string, to: string) =>
-    new BusinessRuleError(`Cannot change status from ${from} to ${to}`),
-
-  tableNotAvailable: (tableSize: number, time: Date) =>
-    new ConflictError(
-      `No table available for ${tableSize} people at ${time.toISOString()}`
-    ),
+  GraphQLAuthenticationError,
+  GraphQLForbiddenError,
+  GraphQLValidationError,
+  GraphQLBusinessError,
 };
