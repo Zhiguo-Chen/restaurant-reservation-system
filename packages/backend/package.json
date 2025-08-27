@@ -7,13 +7,17 @@
     "build": "tsc",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/index.js",
+    "seed": "node src/scripts/seed.js",
+    "seed:employees": "node src/scripts/seed-employees.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
+    "couchbase": "^4.3.0",
     "dotenv": "^16.3.0",
     "express": "^4.18.0",
     "helmet": "^7.0.0"

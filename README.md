@@ -35,24 +35,16 @@ A modern, full-stack restaurant reservation system built with Node.js, React/Sol
 
 - Docker 20.10+
 - Docker Compose 2.0+
-- 4GB+ RAM
-- 2GB+ disk space
 
-### One-Click Setup
+### Quick Start
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd restaurant-reservation-system
 
-# Run setup script
-./scripts/setup.sh
-
-# Start development environment
-./scripts/start.sh
-
-# Or use make commands
-make dev
+# Start the application
+make start
 ```
 
 ### Access the System
@@ -62,7 +54,7 @@ make dev
 | 🌐 **Frontend**           | http://localhost:3000         | No login required for customers |
 | 🔧 **Backend API**        | http://localhost:4000         | -                               |
 | 📊 **GraphQL Playground** | http://localhost:4000/graphql | -                               |
-| 🗄️ **Database Admin**     | http://localhost:8081         | admin / admin123                |
+| 🗄️ **Database Admin**     | http://localhost:8091         | admin / password123             |
 | 👤 **Employee Login**     | http://localhost:3000/login   | employee / employee123          |
 | 👑 **Admin Login**        | http://localhost:3000/login   | admin / admin123                |
 
@@ -88,9 +80,8 @@ restaurant-reservation-system/
 │   │   └── Dockerfile
 │   └── shared/                 # Shared types & utilities
 ├── docker/                     # Docker configuration
-├── scripts/                    # Utility scripts
-├── docker-compose.yml          # Production setup
-├── docker-compose.dev.yml      # Development setup
+├── docker/                     # Docker configuration
+├── docker-compose.yml          # Docker setup
 └── Makefile                    # Command shortcuts
 ```
 
@@ -99,45 +90,41 @@ restaurant-reservation-system/
 ### Available Commands
 
 ```bash
-# Development
-make dev          # Start development environment
-make dev-logs     # View development logs
-make dev-stop     # Stop development environment
-
-# Production
-make prod         # Start production environment
-make prod-logs    # View production logs
-make prod-stop    # Stop production environment
+# Basic Commands
+make start        # Start the application
+make build        # Build and start the application
+make logs         # View application logs
+make stop         # Stop the application
 
 # Utilities
 make shell-be     # Backend container shell
 make shell-fe     # Frontend container shell
-make shell-db     # MongoDB shell
+make shell-db     # Couchbase query shell
 make health       # Check system health
 make clean        # Clean up everything
 ```
 
 ### Development Workflow
 
-1. **Start Development Environment**
+1. **Start the Application**
 
    ```bash
-   make dev
+   make start
    ```
 
 2. **Make Changes**
 
    - Backend: Edit files in `packages/backend/src/`
    - Frontend: Edit files in `packages/frontend/src/`
-   - Changes are automatically reloaded
+   - Restart containers to see changes: `make build`
 
 3. **View Logs**
 
    ```bash
-   make dev-logs
+   make logs
    ```
 
-4. **Test Changes**
+4. **Test the Application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:4000/health
    - GraphQL: http://localhost:4000/graphql
@@ -145,17 +132,11 @@ make clean        # Clean up everything
 ### Database Management
 
 ```bash
-# Access MongoDB shell
+# Access Couchbase query shell
 make shell-db
 
-# Backup database
-./scripts/backup.sh
-
-# Restore database
-./scripts/restore.sh --backup=restaurant_backup_20231201_120000
-
 # View database in browser
-open http://localhost:8081
+open http://localhost:8091
 ```
 
 ## 🏗️ Architecture
@@ -165,7 +146,7 @@ open http://localhost:8081
 - **Node.js** - Runtime environment
 - **Express** - Web framework
 - **Apollo Server** - GraphQL server
-- **MongoDB** - Primary database
+- **Couchbase** - Primary database
 - **Redis** - Caching and sessions
 - **JWT** - Authentication tokens
 
@@ -182,7 +163,7 @@ open http://localhost:8081
 - **Docker** - Containerization
 - **Docker Compose** - Multi-container orchestration
 - **Nginx** - Production web server
-- **MongoDB Express** - Database administration
+- **Couchbase Web Console** - Database administration
 
 ## 🔧 Configuration
 
@@ -193,7 +174,10 @@ open http://localhost:8081
 ```env
 NODE_ENV=development
 PORT=4000
-MONGODB_URI=mongodb://admin:password123@mongodb:27017/restaurant-reservations?authSource=admin
+COUCHBASE_CONNECTION_STRING=couchbase://couchbase
+COUCHBASE_USERNAME=admin
+COUCHBASE_PASSWORD=password123
+COUCHBASE_BUCKET=restaurant-reservations
 JWT_SECRET=your-super-secret-jwt-key
 CORS_ORIGIN=http://localhost:3000
 ```
@@ -210,7 +194,7 @@ VITE_NODE_ENV=development
 
 1. **Database Configuration**
 
-   - Edit `docker/mongodb/init/01-init-db.js`
+   - Edit `docker/couchbase/init-cluster.sh`
    - Modify connection strings in docker-compose files
 
 2. **API Configuration**
@@ -224,14 +208,14 @@ VITE_NODE_ENV=development
 
 ## 📊 Monitoring
 
-### Real-time Monitoring
+### Monitoring
 
 ```bash
-# Start monitoring dashboard
-./scripts/monitor.sh
+# Check service health
+make health
 
-# Monitor production environment
-./scripts/monitor.sh --prod
+# View logs
+make logs
 ```
 
 ### Health Checks
@@ -249,23 +233,23 @@ curl http://localhost:3000
 
 ```bash
 # All services
-make dev-logs
+make logs
 
 # Specific service
-docker logs restaurant-backend-dev -f
-docker logs restaurant-frontend-dev -f
-docker logs restaurant-mongodb-dev -f
+docker logs restaurant-backend -f
+docker logs restaurant-frontend -f
+docker logs restaurant-couchbase -f
 ```
 
 ## 🔒 Security
 
 ### Production Security Checklist
 
-- [ ] Change default MongoDB passwords
+- [ ] Change default Couchbase passwords
 - [ ] Update JWT secret key
 - [ ] Configure HTTPS/SSL
 - [ ] Set up firewall rules
-- [ ] Enable MongoDB authentication
+- [ ] Configure Couchbase security
 - [ ] Configure CORS properly
 - [ ] Set up log monitoring
 - [ ] Regular security updates
@@ -279,31 +263,21 @@ docker logs restaurant-mongodb-dev -f
 
 ## 🚀 Deployment
 
-### Development Deployment
+### Deployment
 
 ```bash
-# Quick start
-./scripts/start.sh
+# Start the application
+make start
 
-# With monitoring
-./scripts/start.sh && ./scripts/monitor.sh
-```
-
-### Production Deployment
-
-```bash
-# Production environment
-./scripts/start.sh --env prod
-
-# With SSL (requires additional configuration)
-# See deployment documentation
+# Build and start (for updates)
+make build
 ```
 
 ### Cloud Deployment
 
 - **Docker Hub** - Container registry
 - **AWS ECS** - Container orchestration
-- **MongoDB Atlas** - Managed database
+- **Couchbase Cloud** - Managed database
 - **Redis Cloud** - Managed caching
 
 ## 🧪 Testing
@@ -360,20 +334,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Common Issues
 
 - **Port conflicts**: Check `make health` and modify docker-compose ports
-- **Database connection**: Ensure MongoDB container is running
-- **Build failures**: Run `make clean` and rebuild
+- **Database connection**: Ensure Couchbase container is running
+- **Build failures**: Run `make clean` and rebuild with `make build`
 
 ### Getting Help
 
-- Check the [troubleshooting guide](README.docker.md#故障排除)
 - Review container logs: `make dev-logs`
+- Check system health: `make health`
 - Open an issue on GitHub
 
 ### Resources
 
 - [Docker Documentation](https://docs.docker.com/)
 - [GraphQL Documentation](https://graphql.org/learn/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
+- [Couchbase Documentation](https://docs.couchbase.com/)
 - [SolidJS Documentation](https://www.solidjs.com/docs/latest)
 
 ---
