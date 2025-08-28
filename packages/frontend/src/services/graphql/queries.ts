@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client";
+import { gql } from "../apolloClient";
 
 // 认证相关查询
 export const LOGIN_MUTATION = gql`

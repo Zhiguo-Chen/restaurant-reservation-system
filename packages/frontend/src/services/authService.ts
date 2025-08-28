@@ -1,4 +1,4 @@
-import { apolloClient } from "./apolloClient";
+import { graphqlClient } from "./apolloClient";
 import {
   LOGIN_MUTATION,
   LOGOUT_MUTATION,
@@ -37,10 +37,10 @@ class AuthService {
 
   async login(credentials: LoginInput): Promise<AuthPayload> {
     try {
-      const { data } = await apolloClient.mutate<LoginMutationResult>({
-        mutation: LOGIN_MUTATION,
-        variables: { input: credentials },
-      });
+      const data = await graphqlClient.request<LoginMutationResult>(
+        LOGIN_MUTATION,
+        { input: credentials }
+      );
 
       if (!data?.login) {
         throw new Error("Login failed: No data received");
@@ -78,17 +78,14 @@ class AuthService {
     if (!this.token) return;
 
     try {
-      await apolloClient.mutate<LogoutMutationResult>({
-        mutation: LOGOUT_MUTATION,
-      });
+      await graphqlClient.request<LogoutMutationResult>(LOGOUT_MUTATION);
     } catch (error) {
       console.error("Logout request failed:", error);
       // Continue with local logout even if server request fails
     } finally {
       // Always clear local token
       this.removeToken();
-      // Clear Apollo Client cache
-      await apolloClient.clearStore();
+      // Clear any cached data if needed
     }
   }
 
@@ -96,10 +93,9 @@ class AuthService {
     if (!this.token) return null;
 
     try {
-      const { data } = await apolloClient.query<ValidateTokenQueryResult>({
-        query: VALIDATE_TOKEN_QUERY,
-        fetchPolicy: "network-only", // Always check with server
-      });
+      const data = await graphqlClient.request<ValidateTokenQueryResult>(
+        VALIDATE_TOKEN_QUERY
+      );
 
       if (data?.validateToken?.valid && data.validateToken.user) {
         return data.validateToken.user;
@@ -119,10 +115,7 @@ class AuthService {
     if (!this.token) return null;
 
     try {
-      const { data } = await apolloClient.query<MeQueryResult>({
-        query: ME_QUERY,
-        fetchPolicy: "cache-first",
-      });
+      const data = await graphqlClient.request<MeQueryResult>(ME_QUERY);
 
       return data?.me || null;
     } catch (error) {

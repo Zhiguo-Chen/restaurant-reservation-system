@@ -1,7 +1,21 @@
 import { Component } from "solid-js";
 import { A } from "@solidjs/router";
+import { useAuth } from "../contexts/AuthContext";
+import { UserRole } from "../types";
 
 const HomePage: Component = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  // Check if user is an employee (EMPLOYEE or ADMIN role)
+  const isEmployee = () => {
+    const currentUser = user();
+    return (
+      currentUser &&
+      (currentUser.role === UserRole.EMPLOYEE ||
+        currentUser.role === UserRole.ADMIN)
+    );
+  };
+
   return (
     <div class="max-w-4xl mx-auto">
       {/* Hero Section */}
@@ -21,12 +35,14 @@ const HomePage: Component = () => {
           >
             Make a Reservation
           </A>
-          <A
-            href="/guest/manage"
-            class="inline-block bg-gray-200 text-gray-800 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-300 transition-colors"
-          >
-            Manage Existing
-          </A>
+          {isEmployee() && (
+            <A
+              href="/employee/"
+              class="inline-block bg-gray-200 text-gray-800 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-300 transition-colors"
+            >
+              Manage Existing
+            </A>
+          )}
         </div>
       </div>
 

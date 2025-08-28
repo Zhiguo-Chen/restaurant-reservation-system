@@ -1,15 +1,20 @@
 // Types previously from ../../types
 
 export enum UserRole {
-  ADMIN = "ADMIN",
-  EMPLOYEE = "EMPLOYEE",
+  GUEST = "guest",
+  EMPLOYEE = "employee",
+  MANAGER = "manager",
+  ADMIN = "admin",
 }
 
 export enum ReservationStatus {
   REQUESTED = "REQUESTED",
+  CONFIRMED = "CONFIRMED",
   APPROVED = "APPROVED",
-  CANCELLED = "CANCELLED",
+  SEATED = "SEATED",
   COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
 export interface UserInfo {

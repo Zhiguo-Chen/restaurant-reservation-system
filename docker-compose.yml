@@ -8,7 +8,7 @@ services:
       COUCHBASE_ADMINISTRATOR_USERNAME: admin
       COUCHBASE_ADMINISTRATOR_PASSWORD: password123
       COUCHBASE_BUCKET: restaurant-reservations
-      COUCHBASE_BUCKET_RAMSIZE: 512
+      COUCHBASE_BUCKET_RAMSIZE: 256
     ports:
       - "8091-8096:8091-8096"
       - "11210:11210"
@@ -18,11 +18,19 @@ services:
     networks:
       - restaurant-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8091/pools"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "-u",
+          "admin:password123",
+          "http://localhost:8091/pools",
+        ]
       interval: 30s
-      timeout: 10s
-      retries: 10
-      start_period: 60s
+      timeout: 15s
+      retries: 20
+      start_period: 180s
 
   # Couchbase Initialization
   couchbase-init:

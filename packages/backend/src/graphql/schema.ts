@@ -7,13 +7,18 @@ export const typeDefs = gql`
   # Enums
   enum ReservationStatus {
     REQUESTED
+    CONFIRMED
     APPROVED
-    CANCELLED
+    SEATED
     COMPLETED
+    CANCELLED
+    NO_SHOW
   }
 
   enum UserRole {
+    GUEST
     EMPLOYEE
+    MANAGER
     ADMIN
   }
 

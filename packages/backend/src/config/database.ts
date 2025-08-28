@@ -34,35 +34,73 @@ export class DatabaseConnection {
   }
 
   /**
-   * Connect to Couchbase database
+   * Connect to Couchbase database with retry logic
    */
-  async connect(): Promise<void> {
-    try {
-      if (this.cluster && this.bucket) {
-        // Already connected
+  async connect(
+    maxRetries: number = 10,
+    retryDelay: number = 5000
+  ): Promise<void> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (this.cluster && this.bucket) {
+          // Already connected
+          return;
+        }
+
+        console.log(
+          `Attempting to connect to Couchbase (attempt ${attempt}/${maxRetries})...`
+        );
+
+        const options: ConnectOptions = {
+          username: this.config.username,
+          password: this.config.password,
+          ...this.config.options,
+        };
+
+        this.cluster = await Cluster.connect(
+          this.config.connectionString,
+          options
+        );
+        this.bucket = this.cluster.bucket(this.config.bucketName);
+
+        // Test the connection
+        await this.cluster.ping();
+
+        console.log(
+          `Successfully connected to Couchbase bucket: ${this.config.bucketName}`
+        );
         return;
+      } catch (error) {
+        lastError = error as Error;
+        console.log(
+          `Connection attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : error
+        );
+
+        // Clean up failed connection
+        if (this.cluster) {
+          try {
+            await this.cluster.close();
+          } catch (closeError) {
+            // Ignore close errors
+          }
+          this.cluster = null;
+          this.bucket = null;
+        }
+
+        if (attempt < maxRetries) {
+          console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        }
       }
-
-      const options: ConnectOptions = {
-        username: this.config.username,
-        password: this.config.password,
-        ...this.config.options,
-      };
-
-      this.cluster = await Cluster.connect(
-        this.config.connectionString,
-        options
-      );
-      this.bucket = this.cluster.bucket(this.config.bucketName);
-
-      // Test the connection
-      await this.cluster.ping();
-
-      console.log(`Connected to Couchbase bucket: ${this.config.bucketName}`);
-    } catch (error) {
-      console.error("Failed to connect to Couchbase:", error);
-      throw error;
     }
+
+    console.error(
+      `Failed to connect to Couchbase after ${maxRetries} attempts`
+    );
+    throw lastError || new Error("Failed to connect to Couchbase");
   }
 
   /**

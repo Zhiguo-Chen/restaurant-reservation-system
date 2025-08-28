@@ -28,7 +28,7 @@ export class ReservationRepository
       guestEmail: doc.guestEmail,
       partySize: doc.partySize,
       arrivalTime: new Date(doc.arrivalTime),
-      tableSize: doc.tableSize,
+      tableSize: doc.tableSize || doc.partySize || 2, // Use tableSize if available, fallback to partySize or default to 2
       status: doc.status as ReservationStatus,
       createdAt: new Date(doc.createdAt),
       updatedAt: new Date(doc.updatedAt),
@@ -224,11 +224,12 @@ export class ReservationRepository
         this.countWithQuery(countQuery, parameters),
       ]);
 
-      const totalPages = Math.ceil(totalResult / limit);
+      const total = Number(totalResult) || 0;
+      const totalPages = Math.ceil(total / limit);
 
       return {
-        reservations,
-        total: totalResult,
+        reservations: reservations || [],
+        total,
         page,
         totalPages,
       };

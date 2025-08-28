@@ -1,4 +1,4 @@
-import { apolloClient } from "./apolloClient";
+import { graphqlClient } from "./apolloClient";
 import {
   GET_RESERVATIONS_QUERY,
   GET_RESERVATION_QUERY,
@@ -39,10 +39,16 @@ export interface PaginationOptions {
   offset?: number;
 }
 
+export interface SortOptions {
+  field?: string;
+  direction?: "ASC" | "DESC";
+}
+
 export class ReservationService {
   async getReservations(
     filters?: ReservationFilters,
-    pagination?: PaginationOptions
+    pagination?: PaginationOptions,
+    sort?: SortOptions
   ): Promise<ReservationConnection> {
     const filter: ReservationFilter = {};
 
@@ -60,23 +66,18 @@ export class ReservationService {
       offset: pagination?.offset || 0,
     };
 
-    const { data } = await apolloClient.query<GetReservationsQueryResult>({
-      query: GET_RESERVATIONS_QUERY,
-      variables: { filter, pagination: paginationInput },
-      fetchPolicy: "cache-first",
-    });
+    const data = await graphqlClient.request<GetReservationsQueryResult>(
+      GET_RESERVATIONS_QUERY,
+      { filter, pagination: paginationInput }
+    );
 
     return data.reservations;
   }
 
   async createReservation(input: CreateReservationInput): Promise<Reservation> {
-    const { data } = await apolloClient.mutate<CreateReservationMutationResult>(
-      {
-        mutation: CREATE_RESERVATION_MUTATION,
-        variables: { input },
-        // 更新缓存
-        refetchQueries: [{ query: GET_RESERVATIONS_QUERY }],
-      }
+    const data = await graphqlClient.request<CreateReservationMutationResult>(
+      CREATE_RESERVATION_MUTATION,
+      { input }
     );
 
     if (!data?.createReservation) {
@@ -87,22 +88,19 @@ export class ReservationService {
   }
 
   async getReservation(id: string): Promise<Reservation | null> {
-    const { data } = await apolloClient.query<GetReservationQueryResult>({
-      query: GET_RESERVATION_QUERY,
-      variables: { id },
-      fetchPolicy: "cache-first",
-    });
+    const data = await graphqlClient.request<GetReservationQueryResult>(
+      GET_RESERVATION_QUERY,
+      { id }
+    );
 
     return data?.reservation || null;
   }
 
   async getReservationsByEmail(email: string): Promise<Reservation[]> {
-    const { data } =
-      await apolloClient.query<GetReservationsByEmailQueryResult>({
-        query: GET_RESERVATIONS_BY_EMAIL_QUERY,
-        variables: { email },
-        fetchPolicy: "cache-first",
-      });
+    const data = await graphqlClient.request<GetReservationsByEmailQueryResult>(
+      GET_RESERVATIONS_BY_EMAIL_QUERY,
+      { email }
+    );
 
     return data?.reservationsByEmail || [];
   }
@@ -111,16 +109,9 @@ export class ReservationService {
     id: string,
     input: UpdateReservationInput
   ): Promise<Reservation> {
-    const { data } = await apolloClient.mutate<UpdateReservationMutationResult>(
-      {
-        mutation: UPDATE_RESERVATION_MUTATION,
-        variables: { id, input },
-        // 更新缓存
-        refetchQueries: [
-          { query: GET_RESERVATIONS_QUERY },
-          { query: GET_RESERVATION_QUERY, variables: { id } },
-        ],
-      }
+    const data = await graphqlClient.request<UpdateReservationMutationResult>(
+      UPDATE_RESERVATION_MUTATION,
+      { id, input }
     );
 
     if (!data?.updateReservation) {
@@ -131,16 +122,9 @@ export class ReservationService {
   }
 
   async cancelReservation(id: string): Promise<Reservation> {
-    const { data } = await apolloClient.mutate<CancelReservationMutationResult>(
-      {
-        mutation: CANCEL_RESERVATION_MUTATION,
-        variables: { id },
-        // 更新缓存
-        refetchQueries: [
-          { query: GET_RESERVATIONS_QUERY },
-          { query: GET_RESERVATION_QUERY, variables: { id } },
-        ],
-      }
+    const data = await graphqlClient.request<CancelReservationMutationResult>(
+      CANCEL_RESERVATION_MUTATION,
+      { id }
     );
 
     if (!data?.cancelReservation) {
@@ -154,16 +138,11 @@ export class ReservationService {
     id: string,
     status: ReservationStatus
   ): Promise<Reservation> {
-    const { data } =
-      await apolloClient.mutate<UpdateReservationStatusMutationResult>({
-        mutation: UPDATE_RESERVATION_STATUS_MUTATION,
-        variables: { id, status },
-        // 更新缓存
-        refetchQueries: [
-          { query: GET_RESERVATIONS_QUERY },
-          { query: GET_RESERVATION_QUERY, variables: { id } },
-        ],
-      });
+    const data =
+      await graphqlClient.request<UpdateReservationStatusMutationResult>(
+        UPDATE_RESERVATION_STATUS_MUTATION,
+        { id, status }
+      );
 
     if (!data?.updateReservationStatus) {
       throw new Error("Failed to update reservation status");

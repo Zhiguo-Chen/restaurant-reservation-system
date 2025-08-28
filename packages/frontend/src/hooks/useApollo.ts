@@ -1,62 +1,41 @@
-import { createSignal } from "solid-js";
-import {
-  DocumentNode,
-  OperationVariables,
-  ApolloError,
-  FetchResult,
-} from "@apollo/client";
-import { apolloClient } from "../services/apolloClient";
+import { createSignal, createEffect } from "solid-js";
+import { graphqlClient } from "../services/apolloClient";
+import { RequestDocument, Variables } from "graphql-request";
 
-// 简化的 Query Hook
-export function useQuery<TData = any>(
-  query: DocumentNode,
-  options?: {
-    variables?: OperationVariables;
-    fetchPolicy?: string;
-  }
+// Query Hook
+export function useQuery<TData = any, TVariables extends Variables = Variables>(
+  query: RequestDocument,
+  variables?: TVariables,
+  options?: { enabled?: boolean }
 ) {
   const [data, setData] = createSignal<TData | undefined>();
   const [loading, setLoading] = createSignal(true);
-  const [error, setError] = createSignal<ApolloError | undefined>();
+  const [error, setError] = createSignal<Error | undefined>();
 
-  // 立即执行查询
-  apolloClient
-    .query<TData>({
-      query,
-      variables: options?.variables,
-      fetchPolicy: options?.fetchPolicy as any,
-    })
-    .then((result) => {
-      setData(() => result.data);
-      setLoading(false);
-      if (result.error) {
-        setError(result.error);
-      }
-    })
-    .catch((err) => {
-      setError(err);
-      setLoading(false);
-    });
+  const executeQuery = async () => {
+    try {
+      setLoading(true);
+      setError(undefined);
 
-  const refetch = (variables?: OperationVariables) => {
-    setLoading(true);
-    return apolloClient
-      .query<TData>({
+      const result = await graphqlClient.request<TData, TVariables>(
         query,
-        variables: variables || options?.variables,
-        fetchPolicy: "network-only",
-      })
-      .then((result) => {
-        setData(() => result.data);
-        setLoading(false);
-        return result;
-      })
-      .catch((err) => {
-        setError(err);
-        setLoading(false);
-        throw err;
-      });
+        variables
+      );
+      setData(result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  createEffect(() => {
+    if (options?.enabled !== false) {
+      executeQuery();
+    }
+  });
+
+  const refetch = () => executeQuery();
 
   return {
     data,
@@ -66,76 +45,72 @@ export function useQuery<TData = any>(
   };
 }
 
-// 简化的 Mutation Hook
-export function useMutation<TData = any>(mutation: DocumentNode) {
+// Lazy Query Hook
+export function useLazyQuery<
+  TData = any,
+  TVariables extends Variables = Variables
+>(query: RequestDocument) {
   const [data, setData] = createSignal<TData | undefined>();
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal<ApolloError | undefined>();
+  const [error, setError] = createSignal<Error | undefined>();
 
-  const mutate = async (mutationOptions?: {
-    variables?: OperationVariables;
-    refetchQueries?: any[];
-  }): Promise<FetchResult<TData>> => {
-    setLoading(true);
-    setError(undefined);
-
+  const execute = async (variables?: TVariables) => {
     try {
-      const result = await apolloClient.mutate<TData>({
-        mutation,
-        variables: mutationOptions?.variables,
-        refetchQueries: mutationOptions?.refetchQueries,
-      });
+      setLoading(true);
+      setError(undefined);
 
-      setData(() => result.data);
-      setLoading(false);
-      return result;
+      const result = await graphqlClient.request<TData, TVariables>(
+        query,
+        variables
+      );
+      setData(result);
+      return { data: result };
     } catch (err) {
-      setError(err as ApolloError);
-      setLoading(false);
+      setError(err as Error);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   return {
-    mutate,
+    execute,
     data,
     loading,
     error,
   };
 }
 
-// 简化的 Lazy Query Hook
-export function useLazyQuery<TData = any>(query: DocumentNode) {
+// Mutation Hook
+export function useMutation<
+  TData = any,
+  TVariables extends Variables = Variables
+>(mutation: RequestDocument) {
   const [data, setData] = createSignal<TData | undefined>();
   const [loading, setLoading] = createSignal(false);
-  const [error, setError] = createSignal<ApolloError | undefined>();
+  const [error, setError] = createSignal<Error | undefined>();
 
-  const execute = async (executeOptions?: {
-    variables?: OperationVariables;
-    fetchPolicy?: string;
-  }) => {
-    setLoading(true);
-    setError(undefined);
-
+  const mutate = async (options?: { variables?: TVariables }) => {
     try {
-      const result = await apolloClient.query<TData>({
-        query,
-        variables: executeOptions?.variables,
-        fetchPolicy: executeOptions?.fetchPolicy as any,
-      });
+      setLoading(true);
+      setError(undefined);
 
-      setData(() => result.data);
-      setLoading(false);
-      return result;
+      const result = await graphqlClient.request<TData, TVariables>(
+        mutation,
+        options?.variables
+      );
+      setData(result);
+      return { data: result };
     } catch (err) {
-      setError(err as ApolloError);
-      setLoading(false);
+      setError(err as Error);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   return {
-    execute,
+    mutate,
     data,
     loading,
     error,

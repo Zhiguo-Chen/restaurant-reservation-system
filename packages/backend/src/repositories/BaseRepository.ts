@@ -193,9 +193,9 @@ export abstract class BaseRepository<T extends { id: string }>
     try {
       const cluster = this.bucket.cluster;
       const result = await cluster.query(query, { parameters });
-      const count = result.rows[0]?.count || 0;
+      const count = result.rows[0]?.count ?? 0;
       logger.debug(`Counted ${count} ${this.collectionName} entities`);
-      return count;
+      return Number(count) || 0;
     } catch (error) {
       logger.error(`Error counting ${this.collectionName}:`, error);
       throw error;

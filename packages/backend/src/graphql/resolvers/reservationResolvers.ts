@@ -73,10 +73,10 @@ export const reservationResolvers = {
         return {
           data: paginatedData,
           pagination: {
-            page,
-            limit,
             total,
-            totalPages: Math.ceil(total / limit),
+            limit,
+            offset,
+            hasMore: offset + limit < total,
           },
         };
       }
@@ -99,10 +99,10 @@ export const reservationResolvers = {
       return {
         data: result.reservations,
         pagination: {
-          page: result.page,
-          limit,
           total: result.total,
-          totalPages: result.totalPages,
+          limit,
+          offset,
+          hasMore: offset + limit < result.total,
         },
       };
     },

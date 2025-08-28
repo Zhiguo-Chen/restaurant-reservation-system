@@ -7,15 +7,20 @@ export interface User {
 }
 
 export enum UserRole {
+  GUEST = "GUEST",
   EMPLOYEE = "EMPLOYEE",
+  MANAGER = "MANAGER",
   ADMIN = "ADMIN",
 }
 
 export enum ReservationStatus {
   REQUESTED = "REQUESTED",
+  CONFIRMED = "CONFIRMED",
   APPROVED = "APPROVED",
-  CANCELLED = "CANCELLED",
+  SEATED = "SEATED",
   COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
 export interface Reservation {
