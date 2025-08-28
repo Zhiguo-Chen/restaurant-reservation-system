@@ -4,7 +4,7 @@ import { Router } from "@solidjs/router";
 import { AuthGuard } from "../AuthGuard";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { authService } from "../../../services/authService";
-import { UserRole } from "@restaurant-reservation/shared";
+import { UserRole } from "../../types";
 
 // Mock the auth service
 vi.mock("../../../services/authService", () => ({

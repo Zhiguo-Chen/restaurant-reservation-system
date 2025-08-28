@@ -1,10 +1,20 @@
+import { apolloClient } from "./apolloClient";
 import {
-  LoginRequest,
-  AuthResponse,
-  UserInfo,
-} from "@restaurant-reservation/shared";
+  LOGIN_MUTATION,
+  LOGOUT_MUTATION,
+  VALIDATE_TOKEN_QUERY,
+  ME_QUERY,
+} from "./graphql/queries";
+import {
+  LoginInput,
+  AuthPayload,
+  User,
+  LoginMutationResult,
+  LogoutMutationResult,
+  ValidateTokenQueryResult,
+  MeQueryResult,
+} from "../types/graphql";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 const TOKEN_KEY = "auth_token";
 const TOKEN_EXPIRY_KEY = "auth_token_expiry";
 
@@ -25,44 +35,42 @@ class AuthService {
     this.tokenExpiry = expiry ? parseInt(expiry, 10) : null;
   }
 
-  async login(credentials: LoginRequest): Promise<AuthResponse> {
+  async login(credentials: LoginInput): Promise<AuthPayload> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
+      const { data } = await apolloClient.mutate<LoginMutationResult>({
+        mutation: LOGIN_MUTATION,
+        variables: { input: credentials },
       });
 
-      if (!response.ok) {
-        let errorMessage = "Login failed";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-
-        const authError: AuthError = {
-          message: errorMessage,
-          status: response.status,
-        };
-
-        throw authError;
+      if (!data?.login) {
+        throw new Error("Login failed: No data received");
       }
 
-      const authResponse: AuthResponse = await response.json();
-      return authResponse;
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes("fetch")) {
+      const authPayload = data.login;
+
+      // Store token locally
+      this.setToken(authPayload.token, authPayload.expiresIn);
+
+      return authPayload;
+    } catch (error: any) {
+      if (error.networkError) {
         throw {
           message: "Unable to connect to server. Please check your connection.",
           code: "NETWORK_ERROR",
         } as AuthError;
       }
-      throw error;
+
+      if (error.graphQLErrors?.length > 0) {
+        throw {
+          message: error.graphQLErrors[0].message,
+          code: error.graphQLErrors[0].extensions?.code,
+        } as AuthError;
+      }
+
+      throw {
+        message: error.message || "Login failed",
+        code: "UNKNOWN_ERROR",
+      } as AuthError;
     }
   }
 
@@ -70,40 +78,56 @@ class AuthService {
     if (!this.token) return;
 
     try {
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-          "Content-Type": "application/json",
-        },
+      await apolloClient.mutate<LogoutMutationResult>({
+        mutation: LOGOUT_MUTATION,
       });
     } catch (error) {
       console.error("Logout request failed:", error);
       // Continue with local logout even if server request fails
+    } finally {
+      // Always clear local token
+      this.removeToken();
+      // Clear Apollo Client cache
+      await apolloClient.clearStore();
     }
   }
 
-  async validateToken(token: string): Promise<UserInfo> {
+  async validateToken(): Promise<User | null> {
+    if (!this.token) return null;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/validate`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      const { data } = await apolloClient.query<ValidateTokenQueryResult>({
+        query: VALIDATE_TOKEN_QUERY,
+        fetchPolicy: "network-only", // Always check with server
       });
 
-      if (!response.ok) {
-        throw new Error("Token validation failed");
+      if (data?.validateToken?.valid && data.validateToken.user) {
+        return data.validateToken.user;
       }
 
-      const userInfo: UserInfo = await response.json();
-      return userInfo;
+      // Token is invalid, remove it
+      this.removeToken();
+      return null;
     } catch (error) {
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error("Unable to connect to server for token validation");
-      }
-      throw error;
+      console.error("Token validation failed:", error);
+      this.removeToken();
+      return null;
+    }
+  }
+
+  async getCurrentUser(): Promise<User | null> {
+    if (!this.token) return null;
+
+    try {
+      const { data } = await apolloClient.query<MeQueryResult>({
+        query: ME_QUERY,
+        fetchPolicy: "cache-first",
+      });
+
+      return data?.me || null;
+    } catch (error) {
+      console.error("Get current user failed:", error);
+      return null;
     }
   }
 

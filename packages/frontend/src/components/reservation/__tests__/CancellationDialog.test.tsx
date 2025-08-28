@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { CancellationDialog } from "../CancellationDialog";
-import { Reservation, ReservationStatus } from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus } from "../../types";
 import { reservationService } from "../../../services/reservationService";
 
 // Mock the reservation service

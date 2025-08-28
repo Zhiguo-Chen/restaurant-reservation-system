@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { ReservationForm } from "../ReservationForm";
 import { reservationService } from "../../../services/reservationService";
-import { ReservationStatus } from "@restaurant-reservation/shared";
+import { ReservationStatus } from "../../types";
 
 // Mock the reservation service
 vi.mock("../../../services/reservationService", () => ({

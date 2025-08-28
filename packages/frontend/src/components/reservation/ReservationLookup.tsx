@@ -1,7 +1,7 @@
 import { Component, createSignal, Show } from "solid-js";
 import { Input, Button } from "../ui";
 import { reservationService } from "../../services/reservationService";
-import { Reservation } from "@restaurant-reservation/shared";
+import { Reservation } from "../../types";
 
 interface ReservationLookupData {
   email: string;

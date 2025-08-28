@@ -4,7 +4,7 @@ import {
   AuthResponse,
   UserInfo,
   UserRole,
-} from "@restaurant-reservation/shared";
+} from "../types";
 
 // Mock fetch globally
 const mockFetch = vi.fn();

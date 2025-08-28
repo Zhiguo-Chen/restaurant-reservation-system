@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ReservationService } from "../reservationService";
 import { graphqlClient } from "../graphqlClient";
-import { ReservationStatus } from "@restaurant-reservation/shared";
+import { ReservationStatus } from "../types";
 
 // Mock the GraphQL client
 vi.mock("../graphqlClient", () => ({

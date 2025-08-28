@@ -11,7 +11,7 @@ async function seedDatabase() {
 
     // Connect to Couchbase
     console.log("📡 Connecting to Couchbase...");
-    const cluster = await Cluster.connect("couchbase://localhost", {
+    const cluster = await Cluster.connect("couchbase://couchbase", {
       username: "admin",
       password: "password123",
     });

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@solidjs/testing-library";
 import { DashboardFilters } from "../DashboardFilters";
-import { ReservationStatus } from "@restaurant-reservation/shared";
+import { ReservationStatus } from "../../types";
 
 describe("DashboardFilters", () => {
   const defaultProps = {

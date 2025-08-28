@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import { AuthProvider, useAuth } from "../AuthContext";
 import { authService } from "../../services/authService";
-import { UserRole } from "@restaurant-reservation/shared";
+import { UserRole } from "../../types";
 
 // Mock the auth service
 vi.mock("../../services/authService", () => ({

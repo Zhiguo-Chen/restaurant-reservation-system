@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Couchbase Database
   couchbase:
@@ -20,18 +18,11 @@ services:
     networks:
       - restaurant-network
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-f",
-          "-u",
-          "admin:password123",
-          "http://localhost:8091/pools/default",
-        ]
+      test: ["CMD", "curl", "-f", "http://localhost:8091/pools"]
       interval: 30s
       timeout: 10s
-      retries: 5
+      retries: 10
+      start_period: 60s
 
   # Couchbase Initialization
   couchbase-init:
@@ -50,8 +41,8 @@ services:
   # Backend API Service
   backend:
     build:
-      context: ./packages/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/backend/Dockerfile.dev
     container_name: restaurant-backend
     restart: unless-stopped
     environment:
@@ -83,8 +74,8 @@ services:
   # Frontend Web Application
   frontend:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/frontend/Dockerfile.dev
     container_name: restaurant-frontend
     restart: unless-stopped
     environment:
@@ -96,8 +87,11 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./packages/frontend:/app
+      - ./packages/frontend:/app/packages/frontend
+      - ./packages/shared:/app/packages/shared
+      - ./package.json:/app/package.json
       - /app/node_modules
+      - /app/packages/frontend/node_modules
     networks:
       - restaurant-network
 

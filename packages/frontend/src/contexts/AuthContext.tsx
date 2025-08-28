@@ -6,7 +6,7 @@ import {
   JSX,
   onMount,
 } from "solid-js";
-import { UserInfo } from "@restaurant-reservation/shared";
+import { UserInfo } from "../../types";
 import { authService } from "../services/authService";
 
 interface AuthContextType {

@@ -89,34 +89,28 @@ export const DateRangePicker: Component<DateRangePickerProps> = (props) => {
         </label>
       )}
       <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">From</label>
-          <input
-            type="date"
-            value={startDateValue()}
-            onInput={(e) => handleStartDateChange(e.currentTarget.value)}
-            min={getMinDate()}
-            max={getMaxDate()}
-            disabled={props.disabled}
-            required={props.required}
-            class={inputClasses()}
-            placeholder="Start date"
-          />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">To</label>
-          <input
-            type="date"
-            value={endDateValue()}
-            onInput={(e) => handleEndDateChange(e.currentTarget.value)}
-            min={getEndMinDate()}
-            max={getMaxDate()}
-            disabled={props.disabled}
-            required={props.required}
-            class={inputClasses()}
-            placeholder="End date"
-          />
-        </div>
+        <input
+          type="date"
+          value={startDateValue()}
+          onInput={(e) => handleStartDateChange(e.currentTarget.value)}
+          min={getMinDate()}
+          max={getMaxDate()}
+          disabled={props.disabled}
+          required={props.required}
+          class={inputClasses()}
+          placeholder="Start date"
+        />
+        <input
+          type="date"
+          value={endDateValue()}
+          onInput={(e) => handleEndDateChange(e.currentTarget.value)}
+          min={getEndMinDate()}
+          max={getMaxDate()}
+          disabled={props.disabled}
+          required={props.required}
+          class={inputClasses()}
+          placeholder="End date"
+        />
       </div>
       {props.error && <p class="text-sm text-red-600">{props.error}</p>}
       {props.helperText && !props.error && (

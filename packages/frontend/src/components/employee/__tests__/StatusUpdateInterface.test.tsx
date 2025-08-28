@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { StatusUpdateInterface } from "../StatusUpdateInterface";
-import { Reservation, ReservationStatus } from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus } from "../../types";
 
 const mockReservation: Reservation = {
   id: "reservation-123",

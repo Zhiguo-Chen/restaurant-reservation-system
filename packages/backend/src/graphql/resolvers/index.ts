@@ -1,6 +1,7 @@
 import { scalarResolvers } from "../scalars";
 import { userResolvers } from "./userResolvers";
 import { reservationResolvers } from "./reservationResolvers";
+import { authResolvers } from "./authResolvers";
 
 export const resolvers = {
   ...scalarResolvers,
@@ -8,9 +9,11 @@ export const resolvers = {
   Query: {
     ...userResolvers.Query,
     ...reservationResolvers.Query,
+    ...authResolvers.Query,
   },
 
   Mutation: {
+    ...authResolvers.Mutation,
     ...reservationResolvers.Mutation,
   },
 

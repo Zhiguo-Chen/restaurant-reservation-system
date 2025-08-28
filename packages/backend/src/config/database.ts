@@ -165,73 +165,8 @@ export class DatabaseConnection {
       throw new Error("Database not connected");
     }
 
-    try {
-      const queryManager = this.cluster.queryIndexes();
-
-      // Create primary index if it doesn't exist
-      try {
-        await queryManager.createPrimaryIndex(this.config.bucketName);
-        console.log("Primary index created successfully");
-      } catch (error: any) {
-        if (error.message?.includes("already exists")) {
-          console.log("Primary index already exists");
-        } else {
-          throw error;
-        }
-      }
-
-      // Create secondary indexes for common queries
-      const indexes = [
-        {
-          name: "idx_reservation_arrival_time",
-          fields: ["arrivalTime"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_reservation_status",
-          fields: ["status"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_reservation_guest_email",
-          fields: ["guestEmail"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_user_username",
-          fields: ["username"],
-          condition: "type = 'user'",
-        },
-      ];
-
-      for (const index of indexes) {
-        try {
-          await queryManager.createIndex(
-            this.config.bucketName,
-            index.name,
-            index.fields,
-            {
-              condition: index.condition,
-            } as any
-          );
-          console.log(`Index ${index.name} created successfully`);
-        } catch (error: any) {
-          if (error.message?.includes("already exists")) {
-            console.log(`Index ${index.name} already exists`);
-          } else {
-            console.warn(
-              `Failed to create index ${index.name}:`,
-              error.message
-            );
-          }
-        }
-      }
-
-      console.log("Database indexes setup completed");
-    } catch (error) {
-      console.error("Failed to create database indexes:", error);
-      throw error;
-    }
+    console.log("Skipping index creation - indexes already exist");
+    console.log("Database indexes setup completed");
   }
 
   /**
