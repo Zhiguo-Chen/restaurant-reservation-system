@@ -28,7 +28,7 @@ else
     --cluster-username ${ADMIN_USER} \
     --cluster-password ${ADMIN_PASS} \
     --cluster-name restaurant-cluster \
-    --cluster-ramsize 512 \
+    --cluster-ramsize 256 \
     --cluster-index-ramsize 256 \
     --services data,index,query \
     --cluster-fts-ramsize 256
@@ -37,7 +37,7 @@ else
 fi
 
 # Wait a bit for cluster to be fully ready
-sleep 10
+sleep 5
 
 # Check if bucket already exists
 if couchbase-cli bucket-list \
@@ -53,7 +53,7 @@ else
     --password ${ADMIN_PASS} \
     --bucket ${BUCKET_NAME} \
     --bucket-type couchbase \
-    --bucket-ramsize 256 \
+    --bucket-ramsize 128 \
     --bucket-replica 0 \
     --wait
   
@@ -62,7 +62,7 @@ fi
 
 # Wait for bucket to be ready
 echo "Waiting for bucket to be ready..."
-sleep 15
+sleep 8
 
 # Create primary index
 echo "Creating primary index..."

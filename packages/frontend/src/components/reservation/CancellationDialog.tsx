@@ -1,5 +1,5 @@
 import { Component, createSignal, Show } from "solid-js";
-import { Reservation } from "@restaurant-reservation/shared";
+import { Reservation } from "../../types";
 import { Modal, Button } from "../ui";
 import { reservationService } from "../../services/reservationService";
 

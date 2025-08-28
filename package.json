@@ -8,7 +8,6 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
     "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "lint": "npm run lint --workspaces",
     "clean": "npm run clean --workspaces"

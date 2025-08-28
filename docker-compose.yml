@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Couchbase Database
   couchbase:
@@ -10,7 +8,7 @@ services:
       COUCHBASE_ADMINISTRATOR_USERNAME: admin
       COUCHBASE_ADMINISTRATOR_PASSWORD: password123
       COUCHBASE_BUCKET: restaurant-reservations
-      COUCHBASE_BUCKET_RAMSIZE: 512
+      COUCHBASE_BUCKET_RAMSIZE: 256
     ports:
       - "8091-8096:8091-8096"
       - "11210:11210"
@@ -27,11 +25,12 @@ services:
           "-f",
           "-u",
           "admin:password123",
-          "http://localhost:8091/pools/default",
+          "http://localhost:8091/pools",
         ]
       interval: 30s
-      timeout: 10s
-      retries: 5
+      timeout: 15s
+      retries: 20
+      start_period: 180s
 
   # Couchbase Initialization
   couchbase-init:
@@ -50,8 +49,8 @@ services:
   # Backend API Service
   backend:
     build:
-      context: ./packages/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/backend/Dockerfile.dev
     container_name: restaurant-backend
     restart: unless-stopped
     environment:
@@ -83,8 +82,8 @@ services:
   # Frontend Web Application
   frontend:
     build:
-      context: ./packages/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/frontend/Dockerfile.dev
     container_name: restaurant-frontend
     restart: unless-stopped
     environment:
@@ -96,8 +95,11 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./packages/frontend:/app
+      - ./packages/frontend:/app/packages/frontend
+      - ./packages/shared:/app/packages/shared
+      - ./package.json:/app/package.json
       - /app/node_modules
+      - /app/packages/frontend/node_modules
     networks:
       - restaurant-network
 

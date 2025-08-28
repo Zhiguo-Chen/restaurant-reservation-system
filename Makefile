@@ -17,8 +17,8 @@ help:
 	@echo "  make shell-be     - Open shell in backend container"
 	@echo "  make shell-fe     - Open shell in frontend container"
 	@echo "  make shell-db     - Open Couchbase query shell"
-	@echo "  make seed         - Seed database with sample data
-  make seed-employees - Seed only employees from JSON file"
+	@echo "  make seed         - Seed database with sample data"
+	@echo "  make seed-employees - Seed only employees from JSON file"
 	@echo "  make test         - Run tests in containers"
 	@echo "  make health       - Check service health"
 	@echo "  make urls         - Show service URLs"

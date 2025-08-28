@@ -1,6 +1,6 @@
 # 🍽️ Restaurant Reservation System
 
-A modern, full-stack restaurant reservation system built with Node.js, React/SolidJS, MongoDB, and GraphQL. Features a complete Docker setup for easy deployment and development.
+A modern, full-stack restaurant reservation system built with Node.js, SolidJS, Couchbase, and GraphQL. Features a complete Docker setup for easy deployment and development.
 
 ## ✨ Features
 
@@ -36,16 +36,34 @@ A modern, full-stack restaurant reservation system built with Node.js, React/Sol
 - Docker 20.10+
 - Docker Compose 2.0+
 
-### Quick Start
+### Manual Setup
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd restaurant-reservation-system
+# First time setup - build and start all services
+make build
 
-# Start the application
-make start
+# Wait for all services to be healthy (about 2-3 minutes)
+make health
+
+# Seed database with sample data (recommended)
+make seed
 ```
+
+### Daily Development
+
+```bash
+# Start existing containers (faster)
+make start
+
+# Rebuild and start (when dependencies change)
+make build
+```
+
+**Important**:
+
+- **First time**: Always use `make build` to ensure all dependencies are installed
+- **Daily use**: Use `make start` for faster startup
+- **After code changes**: Use `make build` to rebuild with latest changes
 
 ### Access the System
 
@@ -55,7 +73,7 @@ make start
 | 🔧 **Backend API**        | http://localhost:4000         | -                               |
 | 📊 **GraphQL Playground** | http://localhost:4000/graphql | -                               |
 | 🗄️ **Database Admin**     | http://localhost:8091         | admin / password123             |
-| 👤 **Employee Login**     | http://localhost:3000/login   | employee / employee123          |
+| 👤 **Staff Login**        | http://localhost:3000/login   | staff1 / staff123               |
 | 👑 **Admin Login**        | http://localhost:3000/login   | admin / admin123                |
 
 ## 📁 Project Structure
@@ -96,6 +114,10 @@ make build        # Build and start the application
 make logs         # View application logs
 make stop         # Stop the application
 
+# Database Commands
+make seed         # Seed database with sample data
+make seed-employees # Seed only employee accounts
+
 # Utilities
 make shell-be     # Backend container shell
 make shell-fe     # Frontend container shell
@@ -112,19 +134,25 @@ make clean        # Clean up everything
    make start
    ```
 
-2. **Make Changes**
+2. **Seed Sample Data**
+
+   ```bash
+   make seed
+   ```
+
+3. **Make Changes**
 
    - Backend: Edit files in `packages/backend/src/`
    - Frontend: Edit files in `packages/frontend/src/`
    - Restart containers to see changes: `make build`
 
-3. **View Logs**
+4. **View Logs**
 
    ```bash
    make logs
    ```
 
-4. **Test the Application**
+5. **Test the Application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:4000/health
    - GraphQL: http://localhost:4000/graphql
@@ -132,12 +160,35 @@ make clean        # Clean up everything
 ### Database Management
 
 ```bash
+# Seed database with sample data
+make seed
+
+# Seed only employee accounts
+make seed-employees
+
 # Access Couchbase query shell
 make shell-db
 
 # View database in browser
 open http://localhost:8091
 ```
+
+### Sample Data
+
+After running `make seed`, you'll have:
+
+**Employee Accounts:**
+
+- **Admin**: `admin` / `admin123` (Full system access)
+- **Manager**: `manager` / `manager123` (Reservation management)
+- **Staff 1**: `staff1` / `staff123` (Basic access)
+- **Staff 2**: `staff2` / `staff123` (Basic access)
+
+**Sample Reservations:**
+
+- 5 sample reservations with different statuses (confirmed, pending, cancelled)
+- Various party sizes and dates
+- Customer contact information and special requests
 
 ## 🏗️ Architecture
 
@@ -206,18 +257,6 @@ VITE_NODE_ENV=development
    - Edit `packages/frontend/vite.config.ts`
    - Update API endpoints in service files
 
-## 📊 Monitoring
-
-### Monitoring
-
-```bash
-# Check service health
-make health
-
-# View logs
-make logs
-```
-
 ### Health Checks
 
 ```bash
@@ -261,25 +300,6 @@ docker logs restaurant-couchbase -f
 3. **Admin Functions** - Role-based authorization
 4. **API Security** - Rate limiting and validation
 
-## 🚀 Deployment
-
-### Deployment
-
-```bash
-# Start the application
-make start
-
-# Build and start (for updates)
-make build
-```
-
-### Cloud Deployment
-
-- **Docker Hub** - Container registry
-- **AWS ECS** - Container orchestration
-- **Couchbase Cloud** - Managed database
-- **Redis Cloud** - Managed caching
-
 ## 🧪 Testing
 
 ```bash
@@ -304,52 +324,6 @@ docker-compose -f docker-compose.test.yml up --abort-on-container-exit
 - **Schema**: Auto-generated documentation
 - **Introspection**: Enabled in development
 
-### REST API
-
-- **Health Check**: `GET /health`
-- **Authentication**: `POST /api/auth/login`
-- **User Management**: `GET /api/auth/me`
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
-
-### Development Guidelines
-
-- Follow TypeScript best practices
-- Write comprehensive tests
-- Update documentation
-- Use conventional commits
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-### Common Issues
-
-- **Port conflicts**: Check `make health` and modify docker-compose ports
-- **Database connection**: Ensure Couchbase container is running
-- **Build failures**: Run `make clean` and rebuild with `make build`
-
-### Getting Help
-
-- Review container logs: `make dev-logs`
-- Check system health: `make health`
-- Open an issue on GitHub
-
-### Resources
-
-- [Docker Documentation](https://docs.docker.com/)
-- [GraphQL Documentation](https://graphql.org/learn/)
-- [Couchbase Documentation](https://docs.couchbase.com/)
-- [SolidJS Documentation](https://www.solidjs.com/docs/latest)
-
----
-
-**Made with ❤️ for restaurant owners and developers**

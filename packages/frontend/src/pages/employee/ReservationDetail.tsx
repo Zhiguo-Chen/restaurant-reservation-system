@@ -1,6 +1,6 @@
 import { Component, createSignal, onMount, Show } from "solid-js";
 import { useParams, useNavigate } from "@solidjs/router";
-import { Reservation, ReservationStatus } from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus } from "../../types";
 import { reservationService } from "../../services/reservationService";
 import { DetailedReservationView } from "../../components/employee/DetailedReservationView";
 import { StatusUpdateInterface } from "../../components/employee/StatusUpdateInterface";

@@ -2,7 +2,7 @@ import { Component, createSignal, Show, onMount } from "solid-js";
 import {
   Reservation,
   UpdateReservationInput,
-} from "@restaurant-reservation/shared";
+} from "../../types";
 import { Input, Select, Button, DateTimePicker } from "../ui";
 import { reservationService } from "../../services/reservationService";
 

@@ -32,12 +32,16 @@ export const Header: Component = () => {
             >
               Make Reservation
             </A>
-            <A
-              href="/guest/manage"
-              class="text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Manage Reservation
-            </A>
+
+            {/* Only show Manage Reservation when employee is logged in */}
+            <Show when={isAuthenticated()}>
+              <A
+                href="/guest/manage"
+                class="text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Manage Reservation
+              </A>
+            </Show>
 
             <Show
               when={isAuthenticated()}

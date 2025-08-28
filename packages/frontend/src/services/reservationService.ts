@@ -1,34 +1,34 @@
-import { graphqlClient } from "./graphqlClient";
+import { graphqlClient } from "./apolloClient";
 import {
-  CreateReservationInput,
+  GET_RESERVATIONS_QUERY,
+  GET_RESERVATION_QUERY,
+  GET_RESERVATIONS_BY_EMAIL_QUERY,
+  CREATE_RESERVATION_MUTATION,
+  UPDATE_RESERVATION_MUTATION,
+  CANCEL_RESERVATION_MUTATION,
+  UPDATE_RESERVATION_STATUS_MUTATION,
+} from "./graphql/queries";
+import {
   Reservation,
   ReservationStatus,
-} from "@restaurant-reservation/shared";
-
-export interface CreateReservationResponse {
-  createReservation: Reservation;
-}
-
-export interface GetReservationResponse {
-  getReservation: Reservation;
-}
-
-export interface GetReservationsResponse {
-  getReservations: {
-    data: Reservation[];
-    pagination: {
-      total: number;
-      limit: number;
-      offset: number;
-      hasMore: boolean;
-    };
-  };
-}
+  CreateReservationInput,
+  UpdateReservationInput,
+  ReservationFilter,
+  PaginationInput,
+  ReservationConnection,
+  GetReservationsQueryResult,
+  GetReservationQueryResult,
+  GetReservationsByEmailQueryResult,
+  CreateReservationMutationResult,
+  UpdateReservationMutationResult,
+  CancelReservationMutationResult,
+  UpdateReservationStatusMutationResult,
+} from "../types/graphql";
 
 export interface ReservationFilters {
   startDate?: Date;
   endDate?: Date;
-  status?: ReservationStatus[];
+  status?: ReservationStatus;
   guestName?: string;
   guestEmail?: string;
   tableSize?: number;
@@ -40,7 +40,7 @@ export interface PaginationOptions {
 }
 
 export interface SortOptions {
-  field?: "arrivalTime" | "createdAt" | "guestName" | "status";
+  field?: string;
   direction?: "ASC" | "DESC";
 }
 
@@ -49,192 +49,106 @@ export class ReservationService {
     filters?: ReservationFilters,
     pagination?: PaginationOptions,
     sort?: SortOptions
-  ): Promise<GetReservationsResponse["getReservations"]> {
-    const query = `
-      query GetReservations(
-        $filters: ReservationFilters
-        $pagination: PaginationInput
-        $sort: SortInput
-      ) {
-        getReservations(filters: $filters, pagination: $pagination, sort: $sort) {
-          data {
-            id
-            guestName
-            guestPhone
-            guestEmail
-            arrivalTime
-            tableSize
-            status
-            notes
-            createdAt
-            updatedAt
-          }
-          pagination {
-            total
-            limit
-            offset
-            hasMore
-          }
-        }
-      }
-    `;
-
-    const variables: any = {};
+  ): Promise<ReservationConnection> {
+    const filter: ReservationFilter = {};
 
     if (filters) {
-      variables.filters = {
-        ...filters,
-        startDate: filters.startDate?.toISOString(),
-        endDate: filters.endDate?.toISOString(),
-      };
+      if (filters.startDate) filter.startDate = filters.startDate.toISOString();
+      if (filters.endDate) filter.endDate = filters.endDate.toISOString();
+      if (filters.status) filter.status = filters.status;
+      if (filters.guestName) filter.guestName = filters.guestName;
+      if (filters.guestEmail) filter.guestEmail = filters.guestEmail;
+      if (filters.tableSize) filter.tableSize = filters.tableSize;
     }
 
-    if (pagination) {
-      variables.pagination = pagination;
-    }
+    const paginationInput: PaginationInput = {
+      limit: pagination?.limit || 20,
+      offset: pagination?.offset || 0,
+    };
 
-    if (sort) {
-      variables.sort = sort;
-    }
-
-    const response = await graphqlClient.query<GetReservationsResponse>(
-      query,
-      variables
+    const data = await graphqlClient.request<GetReservationsQueryResult>(
+      GET_RESERVATIONS_QUERY,
+      { filter, pagination: paginationInput }
     );
 
-    return response.getReservations;
+    return data.reservations;
   }
 
   async createReservation(input: CreateReservationInput): Promise<Reservation> {
-    const mutation = `
-      mutation CreateReservation($input: CreateReservationInput!) {
-        createReservation(input: $input) {
-          id
-          guestName
-          guestPhone
-          guestEmail
-          arrivalTime
-          tableSize
-          status
-          notes
-          createdAt
-          updatedAt
-        }
-      }
-    `;
-
-    const response = await graphqlClient.mutate<CreateReservationResponse>(
-      mutation,
+    const data = await graphqlClient.request<CreateReservationMutationResult>(
+      CREATE_RESERVATION_MUTATION,
       { input }
     );
 
-    return response.createReservation;
+    if (!data?.createReservation) {
+      throw new Error("Failed to create reservation");
+    }
+
+    return data.createReservation;
   }
 
-  async getReservation(id: string): Promise<Reservation> {
-    const query = `
-      query GetReservation($id: ID!) {
-        getReservation(id: $id) {
-          id
-          guestName
-          guestPhone
-          guestEmail
-          arrivalTime
-          tableSize
-          status
-          notes
-          createdAt
-          updatedAt
-        }
-      }
-    `;
+  async getReservation(id: string): Promise<Reservation | null> {
+    const data = await graphqlClient.request<GetReservationQueryResult>(
+      GET_RESERVATION_QUERY,
+      { id }
+    );
 
-    const response = await graphqlClient.query<GetReservationResponse>(query, {
-      id,
-    });
+    return data?.reservation || null;
+  }
 
-    return response.getReservation;
+  async getReservationsByEmail(email: string): Promise<Reservation[]> {
+    const data = await graphqlClient.request<GetReservationsByEmailQueryResult>(
+      GET_RESERVATIONS_BY_EMAIL_QUERY,
+      { email }
+    );
+
+    return data?.reservationsByEmail || [];
   }
 
   async updateReservation(
     id: string,
-    input: Partial<CreateReservationInput>
+    input: UpdateReservationInput
   ): Promise<Reservation> {
-    const mutation = `
-      mutation UpdateReservation($id: ID!, $input: UpdateReservationInput!) {
-        updateReservation(id: $id, input: $input) {
-          id
-          guestName
-          guestPhone
-          guestEmail
-          arrivalTime
-          tableSize
-          status
-          notes
-          createdAt
-          updatedAt
-        }
-      }
-    `;
+    const data = await graphqlClient.request<UpdateReservationMutationResult>(
+      UPDATE_RESERVATION_MUTATION,
+      { id, input }
+    );
 
-    const response = await graphqlClient.mutate<{
-      updateReservation: Reservation;
-    }>(mutation, { id, input });
+    if (!data?.updateReservation) {
+      throw new Error("Failed to update reservation");
+    }
 
-    return response.updateReservation;
+    return data.updateReservation;
   }
 
   async cancelReservation(id: string): Promise<Reservation> {
-    const mutation = `
-      mutation CancelReservation($id: ID!) {
-        cancelReservation(id: $id) {
-          id
-          guestName
-          guestPhone
-          guestEmail
-          arrivalTime
-          tableSize
-          status
-          notes
-          createdAt
-          updatedAt
-        }
-      }
-    `;
+    const data = await graphqlClient.request<CancelReservationMutationResult>(
+      CANCEL_RESERVATION_MUTATION,
+      { id }
+    );
 
-    const response = await graphqlClient.mutate<{
-      cancelReservation: Reservation;
-    }>(mutation, { id });
+    if (!data?.cancelReservation) {
+      throw new Error("Failed to cancel reservation");
+    }
 
-    return response.cancelReservation;
+    return data.cancelReservation;
   }
 
   async updateReservationStatus(
     id: string,
     status: ReservationStatus
   ): Promise<Reservation> {
-    const mutation = `
-      mutation UpdateReservationStatus($id: ID!, $status: ReservationStatus!) {
-        updateReservationStatus(id: $id, status: $status) {
-          id
-          guestName
-          guestPhone
-          guestEmail
-          arrivalTime
-          tableSize
-          status
-          notes
-          createdAt
-          updatedAt
-        }
-      }
-    `;
+    const data =
+      await graphqlClient.request<UpdateReservationStatusMutationResult>(
+        UPDATE_RESERVATION_STATUS_MUTATION,
+        { id, status }
+      );
 
-    const response = await graphqlClient.mutate<{
-      updateReservationStatus: Reservation;
-    }>(mutation, { id, status });
+    if (!data?.updateReservationStatus) {
+      throw new Error("Failed to update reservation status");
+    }
 
-    return response.updateReservationStatus;
+    return data.updateReservationStatus;
   }
 }
 

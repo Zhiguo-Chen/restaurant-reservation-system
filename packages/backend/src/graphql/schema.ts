@@ -7,13 +7,18 @@ export const typeDefs = gql`
   # Enums
   enum ReservationStatus {
     REQUESTED
+    CONFIRMED
     APPROVED
-    CANCELLED
+    SEATED
     COMPLETED
+    CANCELLED
+    NO_SHOW
   }
 
   enum UserRole {
+    GUEST
     EMPLOYEE
+    MANAGER
     ADMIN
   }
 
@@ -38,7 +43,30 @@ export const typeDefs = gql`
     notes: String
   }
 
+  # Auth types
+  type AuthPayload {
+    token: String!
+    user: User!
+    expiresIn: Int!
+  }
+
+  type LogoutResponse {
+    message: String!
+    timestamp: DateTime!
+  }
+
+  type TokenValidationResponse {
+    valid: Boolean!
+    user: User
+    timestamp: DateTime!
+  }
+
   # Input types
+  input LoginInput {
+    username: String!
+    password: String!
+  }
+
   input CreateReservationInput {
     guestName: String!
     guestPhone: String!
@@ -95,10 +123,17 @@ export const typeDefs = gql`
 
     # User queries (for authenticated users)
     me: User
+
+    # Auth queries
+    validateToken: TokenValidationResponse!
   }
 
   # Mutations
   type Mutation {
+    # Auth mutations
+    login(input: LoginInput!): AuthPayload!
+    logout: LogoutResponse!
+
     # Reservation mutations
     createReservation(input: CreateReservationInput!): Reservation!
     updateReservation(id: ID!, input: UpdateReservationInput!): Reservation!

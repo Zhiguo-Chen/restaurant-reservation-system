@@ -1,5 +1,5 @@
 import { Component, createSignal, Show, For } from "solid-js";
-import { Reservation, ReservationStatus } from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus } from "../../types";
 import { Button, Modal, Select } from "../ui";
 
 interface StatusUpdateInterfaceProps {

@@ -14,16 +14,20 @@ COPY packages/shared ./packages/shared
 COPY packages/frontend/package*.json ./packages/frontend/
 COPY packages/frontend/vite.config.ts ./packages/frontend/
 COPY packages/frontend/tsconfig.json ./packages/frontend/
+COPY packages/frontend/tsconfig.node.json ./packages/frontend/
 COPY packages/frontend/index.html ./packages/frontend/
 
 # Install dependencies from root (handles workspaces)
 RUN npm install
 
-# Build shared package
-RUN npm run build -w @restaurant-reservation/shared
+# Build shared package if it exists
+RUN if [ -f "packages/shared/package.json" ]; then npm run build -w @restaurant-reservation/shared; fi
 
 # Set working directory to frontend
 WORKDIR /app/packages/frontend
+
+# Install frontend dependencies specifically
+RUN npm install
 
 # Copy frontend source code
 COPY packages/frontend .

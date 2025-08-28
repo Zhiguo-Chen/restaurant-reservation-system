@@ -167,7 +167,13 @@ export abstract class BaseRepository<T extends { id: string }>
       const cluster = this.bucket.cluster;
       const result = await cluster.query(query, { parameters });
 
-      const entities = result.rows.map((row) => this.toDomainEntity(row));
+      const entities = result.rows.map((row) => {
+        // N1QL queries return results in the format { "bucket-name": { ... } }
+        // Extract the actual document content
+        const bucketName = this.bucket.name;
+        const doc = row[bucketName] || row;
+        return this.toDomainEntity(doc);
+      });
       logger.debug(`Found ${entities.length} ${this.collectionName} entities`);
 
       return entities;
@@ -187,9 +193,9 @@ export abstract class BaseRepository<T extends { id: string }>
     try {
       const cluster = this.bucket.cluster;
       const result = await cluster.query(query, { parameters });
-      const count = result.rows[0]?.count || 0;
+      const count = result.rows[0]?.count ?? 0;
       logger.debug(`Counted ${count} ${this.collectionName} entities`);
-      return count;
+      return Number(count) || 0;
     } catch (error) {
       logger.error(`Error counting ${this.collectionName}:`, error);
       throw error;

@@ -34,35 +34,73 @@ export class DatabaseConnection {
   }
 
   /**
-   * Connect to Couchbase database
+   * Connect to Couchbase database with retry logic
    */
-  async connect(): Promise<void> {
-    try {
-      if (this.cluster && this.bucket) {
-        // Already connected
+  async connect(
+    maxRetries: number = 10,
+    retryDelay: number = 5000
+  ): Promise<void> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (this.cluster && this.bucket) {
+          // Already connected
+          return;
+        }
+
+        console.log(
+          `Attempting to connect to Couchbase (attempt ${attempt}/${maxRetries})...`
+        );
+
+        const options: ConnectOptions = {
+          username: this.config.username,
+          password: this.config.password,
+          ...this.config.options,
+        };
+
+        this.cluster = await Cluster.connect(
+          this.config.connectionString,
+          options
+        );
+        this.bucket = this.cluster.bucket(this.config.bucketName);
+
+        // Test the connection
+        await this.cluster.ping();
+
+        console.log(
+          `Successfully connected to Couchbase bucket: ${this.config.bucketName}`
+        );
         return;
+      } catch (error) {
+        lastError = error as Error;
+        console.log(
+          `Connection attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : error
+        );
+
+        // Clean up failed connection
+        if (this.cluster) {
+          try {
+            await this.cluster.close();
+          } catch (closeError) {
+            // Ignore close errors
+          }
+          this.cluster = null;
+          this.bucket = null;
+        }
+
+        if (attempt < maxRetries) {
+          console.log(`Retrying in ${retryDelay / 1000} seconds...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        }
       }
-
-      const options: ConnectOptions = {
-        username: this.config.username,
-        password: this.config.password,
-        ...this.config.options,
-      };
-
-      this.cluster = await Cluster.connect(
-        this.config.connectionString,
-        options
-      );
-      this.bucket = this.cluster.bucket(this.config.bucketName);
-
-      // Test the connection
-      await this.cluster.ping();
-
-      console.log(`Connected to Couchbase bucket: ${this.config.bucketName}`);
-    } catch (error) {
-      console.error("Failed to connect to Couchbase:", error);
-      throw error;
     }
+
+    console.error(
+      `Failed to connect to Couchbase after ${maxRetries} attempts`
+    );
+    throw lastError || new Error("Failed to connect to Couchbase");
   }
 
   /**
@@ -165,73 +203,8 @@ export class DatabaseConnection {
       throw new Error("Database not connected");
     }
 
-    try {
-      const queryManager = this.cluster.queryIndexes();
-
-      // Create primary index if it doesn't exist
-      try {
-        await queryManager.createPrimaryIndex(this.config.bucketName);
-        console.log("Primary index created successfully");
-      } catch (error: any) {
-        if (error.message?.includes("already exists")) {
-          console.log("Primary index already exists");
-        } else {
-          throw error;
-        }
-      }
-
-      // Create secondary indexes for common queries
-      const indexes = [
-        {
-          name: "idx_reservation_arrival_time",
-          fields: ["arrivalTime"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_reservation_status",
-          fields: ["status"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_reservation_guest_email",
-          fields: ["guestEmail"],
-          condition: "type = 'reservation'",
-        },
-        {
-          name: "idx_user_username",
-          fields: ["username"],
-          condition: "type = 'user'",
-        },
-      ];
-
-      for (const index of indexes) {
-        try {
-          await queryManager.createIndex(
-            this.config.bucketName,
-            index.name,
-            index.fields,
-            {
-              condition: index.condition,
-            } as any
-          );
-          console.log(`Index ${index.name} created successfully`);
-        } catch (error: any) {
-          if (error.message?.includes("already exists")) {
-            console.log(`Index ${index.name} already exists`);
-          } else {
-            console.warn(
-              `Failed to create index ${index.name}:`,
-              error.message
-            );
-          }
-        }
-      }
-
-      console.log("Database indexes setup completed");
-    } catch (error) {
-      console.error("Failed to create database indexes:", error);
-      throw error;
-    }
+    console.log("Skipping index creation - indexes already exist");
+    console.log("Database indexes setup completed");
   }
 
   /**

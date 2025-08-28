@@ -1,5 +1,5 @@
 import { Component, Show } from "solid-js";
-import { Reservation, ReservationStatus } from "@restaurant-reservation/shared";
+import { Reservation, ReservationStatus } from "../../types";
 import { Card, CardHeader, CardBody, Badge, Button } from "../ui";
 
 interface ReservationDetailsProps {

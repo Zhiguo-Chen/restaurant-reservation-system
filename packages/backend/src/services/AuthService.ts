@@ -17,10 +17,20 @@ export class AuthServiceImpl implements AuthService {
     }
 
     // Verify password
+    console.log("Password verification:", {
+      username: user.username,
+      providedPassword: password,
+      storedHash: user.passwordHash,
+      hasHash: !!user.passwordHash,
+    });
+
     const isValidPassword = await PasswordUtils.comparePassword(
       password,
       user.passwordHash || ""
     );
+
+    console.log("Password verification result:", isValidPassword);
+
     if (!isValidPassword) {
       throw new Error("Invalid credentials");
     }
